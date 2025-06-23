@@ -2340,7 +2340,7 @@ class EnterpriseMigrationPlatform:
             'real_world_mode': real_world_mode,
             'use_aws_pricing': aws_config['use_aws_pricing'],
             'aws_region': aws_config['aws_region'],
-            'aws_configured': aws_config['aws_configured']
+            'aws_configured': aws_config['aws_configured'],
             'target_aws_region': target_aws_region,
             'analyze_all_methods': analyze_all_methods,  # ADD THIS LINE
             'enable_ai_analysis': enable_ai_analysis,    # ADD THIS LINE
