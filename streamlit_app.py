@@ -84,12 +84,12 @@ class ClaudeAIAnalyst:
                     'error': 'API key not found in secrets.toml'
                 }
             
-            except Exception as e:
+        except Exception as e:
                 # REMOVED: Error message - handle silently
-                self.connection_status = {
-                    'connected': False,
-                    'error': str(e)
-                }
+            self.connection_status = {
+                'connected': False,
+                'error': str(e)
+            }
                 
                 
         
