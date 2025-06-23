@@ -2069,26 +2069,26 @@ class EnterpriseMigrationPlatform:
         
         # ADD THIS NEW SECTION:
     # Enhanced platform status
-    st.markdown('<div class="section-header">🔗 Integration Status</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header">🔗 Integration Status</div>', unsafe_allow_html=True)
 
-    col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4 = st.columns(4)
 
-    with col1:
-        ai_status = "🟢 Connected" if self.claude_ai.available else "🔴 Unavailable"
-        st.metric("Claude AI", ai_status)
+        with col1:
+            ai_status = "🟢 Connected" if self.claude_ai.available else "🔴 Unavailable"
+            st.metric("Claude AI", ai_status)
 
-    with col2:
-        aws_status = "🟢 Available" if hasattr(self, 'network_calculator') and self.network_calculator.pricing_manager else "🔴 Not Configured"
-        st.metric("AWS Pricing API", aws_status)
+        with col2:
+            aws_status = "🟢 Available" if hasattr(self, 'network_calculator') and self.network_calculator.pricing_manager else "🔴 Not Configured"
+            st.metric("AWS Pricing API", aws_status)
 
-    with col3:
-        vrops_status = "🟢 Connected" if st.session_state.vrops_connected else "🔴 Disconnected"
-        st.metric("vROps Integration", vrops_status)
+        with col3:
+            vrops_status = "🟢 Connected" if st.session_state.vrops_connected else "🔴 Disconnected"
+            st.metric("vROps Integration", vrops_status)
 
-    with col4:
-        bulk_status = "🟢 Ready" if VROPS_AVAILABLE else "🔴 Dependencies Missing"
-        st.metric("Bulk Upload", bulk_status)
-            
+        with col4:
+            bulk_status = "🟢 Ready" if VROPS_AVAILABLE else "🔴 Dependencies Missing"
+            st.metric("Bulk Upload", bulk_status)
+                
         
         # Getting started guide
         st.markdown('<div class="section-header">🚀 Getting Started</div>', unsafe_allow_html=True)
