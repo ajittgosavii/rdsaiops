@@ -71,12 +71,28 @@ class ClaudeAIAnalyst:
                 api_key = st.secrets["anthropic"]["api_key"]
                 self.client = anthropic.Anthropic(api_key=api_key)
                 self.available = True
-                st.success("🤖 Claude AI connected successfully!")
-            else:
-                st.warning("⚠️ Claude AI API key not found in secrets.toml")
+
+                # Store status for optional display
+                self.connection_status = {
+                    'connected': True,
+                    'source': 'Streamlit Secrets'
+                }
+                 else:
+                # REMOVED: Warning message about missing API key
+                self.connection_status = {
+                    'connected': False,
+                    'error': 'API key not found in secrets.toml'
+                }
+            
+            except Exception as e:
+                # REMOVED: Error message - handle silently
+                self.connection_status = {
+                    'connected': False,
+                    'error': str(e)
+                }
                 
-        except Exception as e:
-            st.error(f"❌ Error connecting to Claude AI: {str(e)}")
+                
+        
     
     def analyze_migration_strategy(self, config, metrics, migration_options):
         """Get real Claude AI analysis of migration strategy"""
@@ -377,7 +393,7 @@ class AWSPricingManager:
                     )
                 else:
                     # Fall back to default credential chain (environment variables, IAM role, etc.)
-                    st.info("💡 Using default AWS credential chain (IAM role, environment variables, etc.)")
+                    #st.info("💡 Using default AWS credential chain (IAM role, environment variables, etc.)")
                     
                     # Pricing API is only available in us-east-1 and ap-south-1
                     self.pricing_client = boto3.client('pricing', region_name='us-east-1')
@@ -403,8 +419,8 @@ class AWSPricingManager:
                 
                     
             except KeyError as e:
-                st.warning(f"⚠️ AWS secrets configuration incomplete: {str(e)}")
-                st.info("💡 Add AWS credentials to .streamlit/secrets.toml")
+                #st.warning(f"⚠️ AWS secrets configuration incomplete: {str(e)}")
+                #st.info("💡 Add AWS credentials to .streamlit/secrets.toml")
                 self.pricing_client = None
                 self.ec2_client = None
                 return
@@ -413,7 +429,7 @@ class AWSPricingManager:
             try:
                 # Quick test to verify credentials work
                 response = self.pricing_client.describe_services(MaxResults=1)
-                st.success(f"✅ AWS Pricing API connected via {credential_source}")
+                #st.success(f"✅ AWS Pricing API connected via {credential_source}")
                 
                             # Additional connection details
                 if credential_source != "Streamlit Secrets":
@@ -429,26 +445,35 @@ class AWSPricingManager:
                                
             except ClientError as e:
                 error_code = e.response['Error']['Code']
-                if error_code == 'UnauthorizedOperation':
-                    st.error("❌ AWS credentials valid but missing pricing permissions")
-                elif error_code == 'InvalidUserID.NotFound':
-                    st.error("❌ Invalid AWS Access Key ID")
-                elif error_code == 'SignatureDoesNotMatch':
-                    st.error("❌ Invalid AWS Secret Access Key")
-                else:
-                    st.warning(f"⚠️ AWS API error: {str(e)}")
                 self.pricing_client = None
                 self.ec2_client = None
+                self.connection_status = {
+                    'connected': False,
+                    'error': error_code,
+                    'source': 'Error'
+            }
                 
         except NoCredentialsError:
-            st.warning("⚠️ No AWS credentials found. Using fallback pricing.")
+            
             self.pricing_client = None
             self.ec2_client = None
-        except Exception as e:
-            st.error(f"❌ Error initializing AWS clients: {str(e)}")
+            self.connection_status = {
+                'connected': False,
+                'error': 'NoCredentials',
+                'source': 'None'
+            }
+
+                except Exception as e:
+            # REMOVED: Error message
             self.pricing_client = None
             self.ec2_client = None
-    
+            self.connection_status = {
+                'connected': False,
+                'error': str(e),
+                'source': 'Error'
+            }
+            
+            
     def _is_cache_valid(self, key):
         """Check if cached data is still valid"""
         if key not in self.cache or key not in self.last_cache_update:
@@ -1704,13 +1729,19 @@ class EnterpriseMigrationPlatform:
         if 'config_change_count' not in st.session_state:
             st.session_state.config_change_count = 0
     
-    def setup_custom_css(self):
-        """Setup comprehensive custom CSS styling"""
+    def setup_professional_css(self):
+        """Setup professional CSS styling - UPDATED VERSION"""
         st.markdown("""
         <style>
-            /* Main container styling */
+            /* Hide default Streamlit elements */
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            .stDeployButton {display: none;}
+            
+            /* Professional main header */
             .main-header {
-                background: linear-gradient(135deg, #FF9900 0%, #232F3E 100%);
+                background: linear-gradient(135deg, #1f4e79 0%, #2980b9 100%);
                 padding: 2rem;
                 border-radius: 15px;
                 color: white;
@@ -1719,40 +1750,67 @@ class EnterpriseMigrationPlatform:
                 box-shadow: 0 8px 32px rgba(0,0,0,0.1);
             }
             
-            /* Platform selection cards */
-            .platform-card {
-                background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-                padding: 2rem;
-                border-radius: 15px;
-                border: 2px solid #dee2e6;
-                margin: 1rem 0;
-                transition: all 0.3s ease;
-                cursor: pointer;
-                box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            .main-header h1 {
+                color: white;
+                margin: 0;
+                font-size: 2.5rem;
+                font-weight: 600;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
             }
             
-            .platform-card:hover {
-                border-color: #FF9900;
-                box-shadow: 0 8px 24px rgba(255,153,0,0.2);
-                transform: translateY(-5px);
+            .main-header p {
+                color: #ecf0f1;
+                margin: 0.5rem 0 0 0;
+                font-size: 1.1rem;
+                opacity: 0.9;
             }
             
-            .platform-card.selected {
-                border-color: #FF9900;
-                background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
-            }
-            
-            /* Enhanced tab container */
-            .tab-container {
+            /* Professional navigation tabs */
+            .nav-container {
                 background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-                padding: 1.5rem;
+                padding: 1rem;
                 border-radius: 12px;
                 margin-bottom: 2rem;
                 box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-                border: 1px solid #dee2e6;
             }
             
-            /* Standardized section headers */
+            /* Status indicator - subtle and professional */
+            .status-bar {
+                background: rgba(255,255,255,0.1);
+                padding: 0.5rem 1rem;
+                border-radius: 8px;
+                margin-top: 1rem;
+                font-size: 0.9rem;
+                border-left: 4px solid #28a745;
+            }
+            
+            .status-bar.warning {
+                border-left-color: #ffc107;
+                background: rgba(255,193,7,0.1);
+            }
+            
+            .status-bar.error {
+                border-left-color: #dc3545;
+                background: rgba(220,53,69,0.1);
+            }
+            
+            /* Professional metric cards */
+            .metric-card {
+                background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+                padding: 1.5rem;
+                border-radius: 12px;
+                border: 1px solid #e9ecef;
+                margin: 0.75rem 0;
+                transition: all 0.3s ease;
+                box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            }
+            
+            .metric-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            }
+            
+            /* Clean section headers */
             .section-header {
                 background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
                 color: white;
@@ -1764,229 +1822,183 @@ class EnterpriseMigrationPlatform:
                 box-shadow: 0 2px 8px rgba(0,123,255,0.3);
             }
             
-            /* Enhanced metric cards */
-            .metric-card {
-                background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-                padding: 1.5rem;
-                border-radius: 12px;
-                border-left: 5px solid #FF9900;
-                margin: 0.75rem 0;
-                transition: all 0.3s ease;
-                box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-                border: 1px solid #e9ecef;
+            /* Hide debug content by default */
+            .debug-content {
+                display: none;
             }
             
-            .metric-card:hover {
-                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-                transform: translateY(-3px);
-                box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-            }
-            
-            /* Professional recommendation boxes */
-            .recommendation-box {
-                background: linear-gradient(135deg, #e8f4fd 0%, #f0f8ff 100%);
-                padding: 1.5rem;
-                border-radius: 12px;
-                border-left: 5px solid #007bff;
-                margin: 1rem 0;
-                box-shadow: 0 3px 15px rgba(0,123,255,0.1);
-                border: 1px solid #b8daff;
-            }
-            
-            /* Enhanced AI insight boxes */
-            .ai-insight {
-                background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
-                padding: 1.25rem;
-                border-radius: 10px;
-                border-left: 4px solid #007bff;
-                margin: 1rem 0;
-                font-style: italic;
-                box-shadow: 0 2px 10px rgba(0,123,255,0.1);
-                border: 1px solid #cce7ff;
-            }
-            
-            /* Risk assessment colors */
-            .risk-high {
-                background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-                border-left: 5px solid #dc3545;
-            }
-            
-            .risk-medium {
-                background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-                border-left: 5px solid #ffc107;
-            }
-            
-            .risk-low {
-                background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-                border-left: 5px solid #28a745;
-            }
-            
-            /* Status indicators */
-            .status-indicator {
-                display: inline-block;
-                padding: 0.5rem 1rem;
-                border-radius: 20px;
-                font-weight: bold;
-                margin: 0.25rem;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            }
-            
-            .status-excellent {
-                background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-                color: white;
-            }
-            
-            .status-good {
-                background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-                color: white;
-            }
-            
-            .status-warning {
-                background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
-                color: #212529;
-            }
-            
-            .status-danger {
-                background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-                color: white;
-            }
-            
-            /* Executive summary styling */
-            .executive-summary {
-                background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-                color: white;
-                padding: 2rem;
-                border-radius: 15px;
-                margin: 1.5rem 0;
-                box-shadow: 0 6px 24px rgba(40,167,69,0.2);
-                text-align: center;
-            }
-            
-            /* Real-time indicators */
-            .real-time-indicator {
-                display: inline-block;
-                width: 10px;
-                height: 10px;
-                background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-                border-radius: 50%;
-                animation: pulse 2s infinite;
-                margin-right: 8px;
-                box-shadow: 0 0 8px rgba(40,167,69,0.5);
-            }
-            
-            @keyframes pulse {
-                0% { opacity: 1; transform: scale(1); }
-                50% { opacity: 0.7; transform: scale(1.1); }
-                100% { opacity: 1; transform: scale(1); }
-            }
-            
-            /* Tables */
-            .dataframe {
+            .debug-content.show {
+                display: block;
+                background: #f8f9fa;
+                padding: 1rem;
                 border-radius: 8px;
-                overflow: hidden;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-                border: 1px solid #dee2e6;
-            }
-            
-            /* Responsive design */
-            @media (max-width: 768px) {
-                .main-header {
-                    padding: 1rem;
-                }
-                
-                .metric-card {
-                    padding: 1rem;
-                }
-                
-                .recommendation-box {
-                    padding: 1rem;
-                }
-                
-                .platform-card {
-                    padding: 1rem;
-                }
+                margin: 1rem 0;
+                border-left: 4px solid #6c757d;
             }
         </style>
         """, unsafe_allow_html=True)
-    
-    def safe_dataframe_display(self, df, use_container_width=True, hide_index=True, **kwargs):
-        """Safely display a DataFrame by ensuring all values are strings to prevent type mixing"""
-        try:
-            # Convert all values to strings to prevent type mixing issues
-            df_safe = df.astype(str)
-            st.dataframe(df_safe, use_container_width=use_container_width, hide_index=hide_index, **kwargs)
-        except Exception as e:
-            st.error(f"Error displaying table: {str(e)}")
-            st.write("Raw data:")
-            st.write(df)
 
-    def safe_float_conversion(self, value, default=0.0):
-        """Safely convert any value to float"""
-        try:
-            if isinstance(value, str):
-                cleaned = ''.join(c for c in value if c.isdigit() or c in '.-')
-                return float(cleaned) if cleaned else default
-            elif isinstance(value, (int, float)):
-                return float(value)
-            else:
-                return default
-        except (ValueError, TypeError):
-            return default
-
-    def safe_format_currency(self, value, decimal_places=0):
-        """Safely format a value as currency"""
-        try:
-            numeric_value = self.safe_float_conversion(value)
-            if decimal_places == 0:
-                return f"${numeric_value:,.0f}"
-            else:
-                return f"${numeric_value:,.{decimal_places}f}"
-        except:
-            return "$0"
-    
-    def log_audit_event(self, event_type, details):
-        """Log audit events"""
-        event = {
-            "timestamp": datetime.now().isoformat(),
-            "type": event_type,
-            "details": details,
-            "user": st.session_state.user_profile["role"]
-        }
-        st.session_state.audit_log.append(event)
-    
-    def render_header(self):
-        """Render the unified main header"""
+    def render_professional_header(self):
+        """Render professional header with optional status"""
         st.markdown("""
         <div class="main-header">
             <h1>🏢 Enterprise Migration Platform</h1>
-            <p style="font-size: 1.2rem; margin-top: 0.5rem;">Unified Network & Database Migration • AI-Powered • Real-time Analysis</p>
-            <p style="font-size: 0.9rem; margin-top: 0.5rem; opacity: 0.9;">AWS DataSync • RDS • Aurora • EC2 • Professional Grade</p>
+            <p>AI-Powered Cloud Migration Analysis • AWS DataSync • RDS • Aurora</p>
+            <div class="status-bar" id="main-status">
+                <span>🟢 Platform Ready</span>
+                <span style="float: right;">Enterprise Edition v2.0</span>
+            </div>
         </div>
         """, unsafe_allow_html=True)
-    
-    def render_main_navigation(self):
-        """Render main platform navigation"""
-        st.markdown('<div class="tab-container">', unsafe_allow_html=True)
+
+    def render_connection_status_sidebar(self):
+        """Render clean connection status in sidebar (optional)"""
+        with st.sidebar:
+            show_debug = st.checkbox("🔧 Show System Status", value=False, 
+                                    help="Display detailed system connection information")
+            
+            if show_debug:
+                st.markdown('<div class="debug-content show">', unsafe_allow_html=True)
+                
+                st.subheader("🔗 System Status")
+                
+                # AWS Status
+                if hasattr(self.network_calculator, 'pricing_manager') and self.network_calculator.pricing_manager:
+                    pm = self.network_calculator.pricing_manager
+                    if hasattr(pm, 'connection_status'):
+                        status = pm.connection_status
+                        if status.get('connected', False):
+                            st.success(f"✅ AWS Connected ({status.get('source', 'Unknown')})")
+                            if 'account_id' in status:
+                                st.info(f"Account: {status['account_id']}")
+                        else:
+                            st.warning(f"⚠️ AWS: {status.get('error', 'Not configured')}")
+                    else:
+                        st.warning("⚠️ AWS: Status unknown")
+                else:
+                    st.warning("⚠️ AWS: Not configured")
+                
+                # Claude AI Status
+                if hasattr(self, 'claude_ai') and self.claude_ai:
+                    if hasattr(self.claude_ai, 'connection_status'):
+                        status = self.claude_ai.connection_status
+                        if status.get('connected', False):
+                            st.success("✅ Claude AI Connected")
+                        else:
+                            st.warning(f"⚠️ Claude AI: {status.get('error', 'Not configured')}")
+                    else:
+                        st.warning("⚠️ Claude AI: Status unknown")
+                else:
+                    st.warning("⚠️ Claude AI: Not available")
+                
+                # vROps Status
+                vrops_status = "🟢 Connected" if st.session_state.get('vrops_connected', False) else "🔴 Disconnected"
+                st.info(f"vROps: {vrops_status}")
+                
+                st.markdown('</div>', unsafe_allow_html=True)
+
+    def render_professional_navigation(self):
+        """Render professional navigation without clutter"""
+        st.markdown('<div class="nav-container">', unsafe_allow_html=True)
         
         col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 2, 2])
         
         with col1:
-            if st.button("🏠 Overview", key="nav_overview"):
+            if st.button("🏠 Overview", key="nav_overview", use_container_width=True):
                 st.session_state.active_main_tab = "overview"
         with col2:
-            if st.button("🌐 Network Migration", key="nav_network"):
+            if st.button("🌐 Network Migration", key="nav_network", use_container_width=True):
                 st.session_state.active_main_tab = "network"
         with col3:
-            if st.button("🗄️ Database Migration", key="nav_database"):
+            if st.button("🗄️ Database Migration", key="nav_database", use_container_width=True):
                 st.session_state.active_main_tab = "database"
         with col4:
-            if st.button("📊 Unified Analytics", key="nav_unified"):
+            if st.button("📊 Analytics", key="nav_unified", use_container_width=True):
                 st.session_state.active_main_tab = "unified"
         with col5:
-            if st.button("📋 Reports", key="nav_reports"):
+            if st.button("📋 Reports", key="nav_reports", use_container_width=True):
                 st.session_state.active_main_tab = "reports"
         
         st.markdown('</div>', unsafe_allow_html=True)
+        
+        def safe_dataframe_display(self, df, use_container_width=True, hide_index=True, **kwargs):
+            """Safely display a DataFrame by ensuring all values are strings to prevent type mixing"""
+            try:
+                # Convert all values to strings to prevent type mixing issues
+                df_safe = df.astype(str)
+                st.dataframe(df_safe, use_container_width=use_container_width, hide_index=hide_index, **kwargs)
+            except Exception as e:
+                st.error(f"Error displaying table: {str(e)}")
+                st.write("Raw data:")
+                st.write(df)
+
+        def safe_float_conversion(self, value, default=0.0):
+            """Safely convert any value to float"""
+            try:
+                if isinstance(value, str):
+                    cleaned = ''.join(c for c in value if c.isdigit() or c in '.-')
+                    return float(cleaned) if cleaned else default
+                elif isinstance(value, (int, float)):
+                    return float(value)
+                else:
+                    return default
+            except (ValueError, TypeError):
+                return default
+
+        def safe_format_currency(self, value, decimal_places=0):
+            """Safely format a value as currency"""
+            try:
+                numeric_value = self.safe_float_conversion(value)
+                if decimal_places == 0:
+                    return f"${numeric_value:,.0f}"
+                else:
+                    return f"${numeric_value:,.{decimal_places}f}"
+            except:
+                return "$0"
+        
+        def log_audit_event(self, event_type, details):
+            """Log audit events"""
+            event = {
+                "timestamp": datetime.now().isoformat(),
+                "type": event_type,
+                "details": details,
+                "user": st.session_state.user_profile["role"]
+            }
+            st.session_state.audit_log.append(event)
+        
+        def render_header(self):
+            """Render the unified main header"""
+            st.markdown("""
+            <div class="main-header">
+                <h1>🏢 Enterprise Migration Platform</h1>
+                <p style="font-size: 1.2rem; margin-top: 0.5rem;">Unified Network & Database Migration • AI-Powered • Real-time Analysis</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem; opacity: 0.9;">AWS DataSync • RDS • Aurora • EC2 • Professional Grade</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        def render_main_navigation(self):
+            """Render main platform navigation"""
+            st.markdown('<div class="tab-container">', unsafe_allow_html=True)
+            
+            col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 2, 2])
+            
+            with col1:
+                if st.button("🏠 Overview", key="nav_overview"):
+                    st.session_state.active_main_tab = "overview"
+            with col2:
+                if st.button("🌐 Network Migration", key="nav_network"):
+                    st.session_state.active_main_tab = "network"
+            with col3:
+                if st.button("🗄️ Database Migration", key="nav_database"):
+                    st.session_state.active_main_tab = "database"
+            with col4:
+                if st.button("📊 Unified Analytics", key="nav_unified"):
+                    st.session_state.active_main_tab = "unified"
+            with col5:
+                if st.button("📋 Reports", key="nav_reports"):
+                    st.session_state.active_main_tab = "reports"
+            
+            st.markdown('</div>', unsafe_allow_html=True)
     
     def render_overview_tab(self):
         """Render unified overview dashboard"""
@@ -2355,10 +2367,7 @@ class EnterpriseMigrationPlatform:
                 if hasattr(st, 'secrets') and 'aws' in st.secrets:
                     aws_configured = True
                     aws_region = st.secrets["aws"].get("region", "us-east-1")
-                    credential_source = "Streamlit Secrets"
-                    st.success("✅ AWS credentials from secrets.toml")
-                    st.write(f"**Region:** {aws_region}")
-                    st.write(f"**Source:** {credential_source}")
+                    credential_source = "Streamlit Secrets
                 
                 else:
                     # Method 2: Check if boto3 can create a client (default credential chain)
@@ -2372,69 +2381,87 @@ class EnterpriseMigrationPlatform:
                         # Try to get caller identity to verify credentials work
                         response = test_client.get_caller_identity()
                         
-                        if response and 'Account' in response:
-                            aws_configured = True
-                            credential_source = "AWS Default Chain"
-                            
-                            # Try to determine the actual source
-                            session = boto3.Session()
-                            credentials = session.get_credentials()
-                            
-                            if credentials:
-                                # Determine credential source
-                                if hasattr(credentials, 'method'):
-                                    if 'iam' in credentials.method.lower():
-                                        credential_source = "IAM Role"
-                                    elif 'env' in credentials.method.lower():
-                                        credential_source = "Environment Variables"
-                                    elif 'shared' in credentials.method.lower():
-                                        credential_source = "AWS Credentials File"
-                                    else:
-                                        credential_source = f"AWS Default Chain ({credentials.method})"
-                            
-                            st.success("✅ AWS credentials detected")
-                            st.write(f"**Region:** {aws_region}")
-                            st.write(f"**Source:** {credential_source}")
-                            st.write(f"**Account:** {response['Account']}")
-                            
-                            # Show additional info
-                            with st.expander("🔍 AWS Credential Details"):
-                                st.write(f"**User/Role ARN:** {response.get('Arn', 'Unknown')}")
-                                st.write(f"**User ID:** {response.get('UserId', 'Unknown')}")
-                                
-                                # Test pricing API specifically
-                                try:
-                                    pricing_client = boto3.client('pricing', region_name='us-east-1')
-                                    pricing_client.describe_services(MaxResults=1)
-                                    st.write("**Pricing API:** ✅ Accessible")
-                                except Exception as e:
-                                    st.write(f"**Pricing API:** ❌ Error - {str(e)[:50]}...")
-                        
-                    except NoCredentialsError:
-                        st.warning("⚠️ No AWS credentials found")
-                        credential_source = "None"
-                        
-                    except ClientError as e:
-                        error_code = e.response.get('Error', {}).get('Code', 'Unknown')
-                        
-                        if error_code == 'InvalidUserID.NotFound':
-                            st.error("❌ Invalid AWS Access Key ID")
-                        elif error_code == 'SignatureDoesNotMatch':
-                            st.error("❌ Invalid AWS Secret Access Key")
-                        elif error_code == 'TokenRefreshRequired':
-                            st.warning("⚠️ AWS session token expired")
-                        else:
-                            st.warning(f"⚠️ AWS credentials issue: {error_code}")
-                        
-                        credential_source = f"Error: {error_code}"
-                        
-                    except Exception as e:
-                        st.warning(f"⚠️ Cannot verify AWS credentials: {str(e)[:50]}...")
-                        credential_source = f"Error: {str(e)[:30]}..."
+ # Try to create a test client
+                    test_client = boto3.client('sts', region_name='us-east-1')
+                    response = test_client.get_caller_identity()
                     
-            except Exception as e:
-                st.error(f"❌ Error checking AWS configuration: {str(e)}")
-                credential_source = "Error"
+                    if response and 'Account' in response:
+                        aws_configured = True
+                        credential_source = "AWS Default Chain"
+                        
+                        # Store account info for optional display
+                        self.aws_account_info = {
+                            'account_id': response['Account'],
+                            'arn': response.get('Arn', 'Unknown'),
+                            'user_id': response.get('UserId', 'Unknown')
+                        }
+                        
+                except (NoCredentialsError, ClientError):
+                    aws_configured = False
+                    credential_source = "None"
+                    
+        except Exception as e:
+            aws_configured = False
+            credential_source = "Error"
+        
+        # Show simple status
+        if aws_configured:
+            st.success("✅ AWS Configured")
+            st.write(f"**Source:** {credential_source}")
+            st.write(f"**Region:** {aws_region}")
+            
+            # Show account info only in debug mode
+            if st.checkbox("Show AWS Details", value=False):
+                if hasattr(self, 'aws_account_info'):
+                    info = self.aws_account_info
+                    st.info(f"**Account:** {info['account_id']}")
+                    with st.expander("🔍 Additional Details"):
+                        st.write(f"**ARN:** {info['arn']}")
+                        st.write(f"**User ID:** {info['user_id']}")
+        else:
+            st.warning("⚠️ AWS Not Configured")
+            
+            # Show setup help
+            with st.expander("🛠️ Setup Help"):
+                st.markdown("""
+                **Quick Setup Options:**
+                
+                1. **Environment Variables:**
+                ```bash
+                export AWS_ACCESS_KEY_ID="AKIA..."
+                export AWS_SECRET_ACCESS_KEY="..."
+                export AWS_DEFAULT_REGION="us-east-1"
+                ```
+                
+                2. **Streamlit Secrets:**
+                ```toml
+                # .streamlit/secrets.toml
+                [aws]
+                access_key_id = "AKIA..."
+                secret_access_key = "..."
+                region = "us-east-1"
+                ```
+                
+                3. **AWS CLI:**
+                ```bash
+                aws configure
+                ```
+                """)
+        
+        # Toggle for using real-time pricing
+        use_aws_pricing = st.checkbox(
+            "Enable Real-time Pricing", 
+            value=aws_configured,
+            help="Use AWS Pricing API for real-time cost calculations",
+            disabled=not aws_configured
+        )
+        
+        return {
+            'use_aws_pricing': use_aws_pricing,
+            'aws_region': aws_region,
+            'aws_configured': aws_configured,
+            'credential_source': credential_source
+        }
             
             # Configuration help
             if not aws_configured:
