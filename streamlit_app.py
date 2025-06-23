@@ -2832,43 +2832,43 @@ class EnterpriseMigrationPlatform:
             else:
                 risk_level = "Low"
         
-        # Scenarios analysis
-        scenarios = []
-        
-        # Conservative scenario (minimal change)
-        conservative_agents = current_agents + (1 if change_type == "INCREASE" else (-1 if change_type == "DECREASE" else 0))
-        conservative_agents = max(1, conservative_agents)
-        
-        scenarios.append({
-            "name": "Conservative",
-            "agents": conservative_agents,
-            "performance_change": f"{performance_gain_pct/2:+.1f}%",
-            "cost_change": f"{cost_change_pct/2:+.1f}%",
-            "risk": "Low"
-        })
-        
-        # Recommended scenario
-        scenarios.append({
-            "name": "Recommended",
-            "agents": recommended_agents,
-            "performance_change": f"{performance_gain_pct:+.1f}%",
-            "cost_change": f"{cost_change_pct:+.1f}%",
-            "risk": risk_level.split(" - ")[0]
-        })
-        
-        # Aggressive scenario (maximum performance)
-        aggressive_agents = min(20, recommended_agents + 2)
-        aggressive_performance = performance_gain_pct * 1.3
-        aggressive_cost = cost_change_pct * 1.5
-        
-        scenarios.append({
-            "name": "Aggressive",
-            "agents": aggressive_agents,
-            "performance_change": f"{aggressive_performance:+.1f}%",
-            "cost_change": f"{aggressive_cost:+.1f}%",
-            "risk": "Medium-High"
-        })
-        
+            # Scenarios analysis
+            scenarios = []
+            
+            # Conservative scenario (minimal change)
+            conservative_agents = current_agents + (1 if change_type == "INCREASE" else (-1 if change_type == "DECREASE" else 0))
+            conservative_agents = max(1, conservative_agents)
+            
+            scenarios.append({
+                "name": "Conservative",
+                "agents": conservative_agents,
+                "performance_change": f"{performance_gain_pct/2:+.1f}%",
+                "cost_change": f"{cost_change_pct/2:+.1f}%",
+                "risk": "Low"
+            })
+            
+            # Recommended scenario
+            scenarios.append({
+                "name": "Recommended",
+                "agents": recommended_agents,
+                "performance_change": f"{performance_gain_pct:+.1f}%",
+                "cost_change": f"{cost_change_pct:+.1f}%",
+                "risk": risk_level.split(" - ")[0]
+            })
+            
+            # Aggressive scenario (maximum performance)
+            aggressive_agents = min(20, recommended_agents + 2)
+            aggressive_performance = performance_gain_pct * 1.3
+            aggressive_cost = cost_change_pct * 1.5
+            
+            scenarios.append({
+                "name": "Aggressive",
+                "agents": aggressive_agents,
+                "performance_change": f"{aggressive_performance:+.1f}%",
+                "cost_change": f"{aggressive_cost:+.1f}%",
+                "risk": "Medium-High"
+            })
+            
         return {
             "status": change_type,
             "current_agents": current_agents,
