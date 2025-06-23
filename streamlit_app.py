@@ -1736,331 +1736,331 @@ class EnterpriseMigrationPlatform:
         if 'config_change_count' not in st.session_state:
             st.session_state.config_change_count = 0
     
-def setup_custom_css(self):
-    """Setup comprehensive custom CSS styling - UPDATED CLEAN VERSION"""
-    st.markdown("""
-    <style>
-        /* Hide default Streamlit elements */
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        header {visibility: hidden;}
-        .stDeployButton {display: none;}
-        
-        /* Professional main header */
-        .main-header {
-            background: linear-gradient(135deg, #1f4e79 0%, #2980b9 100%);
-            padding: 2rem;
-            border-radius: 15px;
-            color: white;
-            text-align: center;
-            margin-bottom: 2rem;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-        }
-        
-        .main-header h1 {
-            color: white;
-            margin: 0;
-            font-size: 2.5rem;
-            font-weight: 600;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-        
-        .main-header p {
-            color: #ecf0f1;
-            margin: 0.5rem 0 0 0;
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-        
-        /* Status bar inside header */
-        .status-bar {
-            background: rgba(255,255,255,0.1);
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            margin-top: 1rem;
-            font-size: 0.9rem;
-            border-left: 4px solid #28a745;
-        }
-        
-        .status-bar.warning {
-            border-left-color: #ffc107;
-            background: rgba(255,193,7,0.1);
-        }
-        
-        .status-bar.error {
-            border-left-color: #dc3545;
-            background: rgba(220,53,69,0.1);
-        }
-        
-        /* Professional navigation */
-        .tab-container {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            padding: 1rem;
-            border-radius: 12px;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-        }
-        
-        /* Enhanced tab container */
-        .nav-container {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            padding: 1rem;
-            border-radius: 12px;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-        }
-        
-        /* Standardized section headers */
-        .section-header {
-            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-            color: white;
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
-            margin: 1.5rem 0 1rem 0;
-            font-size: 1.2rem;
-            font-weight: bold;
-            box-shadow: 0 2px 8px rgba(0,123,255,0.3);
-        }
-        
-        /* Enhanced metric cards */
-        .metric-card {
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-            padding: 1.5rem;
-            border-radius: 12px;
-            border-left: 5px solid #FF9900;
-            margin: 0.75rem 0;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-            border: 1px solid #e9ecef;
-        }
-        
-        .metric-card:hover {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-        }
-        
-        /* Professional recommendation boxes */
-        .recommendation-box {
-            background: linear-gradient(135deg, #e8f4fd 0%, #f0f8ff 100%);
-            padding: 1.5rem;
-            border-radius: 12px;
-            border-left: 5px solid #007bff;
-            margin: 1rem 0;
-            box-shadow: 0 3px 15px rgba(0,123,255,0.1);
-            border: 1px solid #b8daff;
-        }
-        
-        /* Enhanced AI insight boxes */
-        .ai-insight {
-            background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
-            padding: 1.25rem;
-            border-radius: 10px;
-            border-left: 4px solid #007bff;
-            margin: 1rem 0;
-            font-style: italic;
-            box-shadow: 0 2px 10px rgba(0,123,255,0.1);
-            border: 1px solid #cce7ff;
-        }
-        
-        /* Risk assessment colors */
-        .risk-high {
-            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-            border-left: 5px solid #dc3545;
-        }
-        
-        .risk-medium {
-            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-            border-left: 5px solid #ffc107;
-        }
-        
-        .risk-low {
-            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-            border-left: 5px solid #28a745;
-        }
-        
-        /* Status indicators */
-        .status-indicator {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-weight: bold;
-            margin: 0.25rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        
-        .status-excellent {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            color: white;
-        }
-        
-        .status-good {
-            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-            color: white;
-        }
-        
-        .status-warning {
-            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
-            color: #212529;
-        }
-        
-        .status-danger {
-            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-            color: white;
-        }
-        
-        /* Executive summary styling */
-        .executive-summary {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            color: white;
-            padding: 2rem;
-            border-radius: 15px;
-            margin: 1.5rem 0;
-            box-shadow: 0 6px 24px rgba(40,167,69,0.2);
-            text-align: center;
-        }
-        
-        /* Real-time indicators */
-        .real-time-indicator {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-            margin-right: 8px;
-            box-shadow: 0 0 8px rgba(40,167,69,0.5);
-        }
-        
-        @keyframes pulse {
-            0% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.7; transform: scale(1.1); }
-            100% { opacity: 1; transform: scale(1); }
-        }
-        
-        /* Tables */
-        .dataframe {
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            border: 1px solid #dee2e6;
-        }
-        
-        /* Hide debug content by default */
-        .debug-content {
-            display: none;
-        }
-        
-        .debug-content.show {
-            display: block;
-            background: #f8f9fa;
-            padding: 1rem;
-            border-radius: 8px;
-            margin: 1rem 0;
-            border-left: 4px solid #6c757d;
-        }
-        
-        /* Responsive design */
-        @media (max-width: 768px) {
+    def setup_custom_css(self):
+        """Setup comprehensive custom CSS styling - UPDATED CLEAN VERSION"""
+        st.markdown("""
+        <style>
+            /* Hide default Streamlit elements */
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            .stDeployButton {display: none;}
+            
+            /* Professional main header */
             .main-header {
-                padding: 1rem;
+                background: linear-gradient(135deg, #1f4e79 0%, #2980b9 100%);
+                padding: 2rem;
+                border-radius: 15px;
+                color: white;
+                text-align: center;
+                margin-bottom: 2rem;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.1);
             }
             
+            .main-header h1 {
+                color: white;
+                margin: 0;
+                font-size: 2.5rem;
+                font-weight: 600;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            }
+            
+            .main-header p {
+                color: #ecf0f1;
+                margin: 0.5rem 0 0 0;
+                font-size: 1.1rem;
+                opacity: 0.9;
+            }
+            
+            /* Status bar inside header */
+            .status-bar {
+                background: rgba(255,255,255,0.1);
+                padding: 0.5rem 1rem;
+                border-radius: 8px;
+                margin-top: 1rem;
+                font-size: 0.9rem;
+                border-left: 4px solid #28a745;
+            }
+            
+            .status-bar.warning {
+                border-left-color: #ffc107;
+                background: rgba(255,193,7,0.1);
+            }
+            
+            .status-bar.error {
+                border-left-color: #dc3545;
+                background: rgba(220,53,69,0.1);
+            }
+            
+            /* Professional navigation */
+            .tab-container {
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                padding: 1rem;
+                border-radius: 12px;
+                margin-bottom: 2rem;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            }
+            
+            /* Enhanced tab container */
+            .nav-container {
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                padding: 1rem;
+                border-radius: 12px;
+                margin-bottom: 2rem;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            }
+            
+            /* Standardized section headers */
+            .section-header {
+                background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 8px;
+                margin: 1.5rem 0 1rem 0;
+                font-size: 1.2rem;
+                font-weight: bold;
+                box-shadow: 0 2px 8px rgba(0,123,255,0.3);
+            }
+            
+            /* Enhanced metric cards */
             .metric-card {
-                padding: 1rem;
+                background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+                padding: 1.5rem;
+                border-radius: 12px;
+                border-left: 5px solid #FF9900;
+                margin: 0.75rem 0;
+                transition: all 0.3s ease;
+                box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+                border: 1px solid #e9ecef;
             }
             
+            .metric-card:hover {
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                transform: translateY(-3px);
+                box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            }
+            
+            /* Professional recommendation boxes */
             .recommendation-box {
-                padding: 1rem;
+                background: linear-gradient(135deg, #e8f4fd 0%, #f0f8ff 100%);
+                padding: 1.5rem;
+                border-radius: 12px;
+                border-left: 5px solid #007bff;
+                margin: 1rem 0;
+                box-shadow: 0 3px 15px rgba(0,123,255,0.1);
+                border: 1px solid #b8daff;
             }
-        }
-    </style>
-    """, unsafe_allow_html=True)
+            
+            /* Enhanced AI insight boxes */
+            .ai-insight {
+                background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+                padding: 1.25rem;
+                border-radius: 10px;
+                border-left: 4px solid #007bff;
+                margin: 1rem 0;
+                font-style: italic;
+                box-shadow: 0 2px 10px rgba(0,123,255,0.1);
+                border: 1px solid #cce7ff;
+            }
+            
+            /* Risk assessment colors */
+            .risk-high {
+                background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+                border-left: 5px solid #dc3545;
+            }
+            
+            .risk-medium {
+                background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+                border-left: 5px solid #ffc107;
+            }
+            
+            .risk-low {
+                background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+                border-left: 5px solid #28a745;
+            }
+            
+            /* Status indicators */
+            .status-indicator {
+                display: inline-block;
+                padding: 0.5rem 1rem;
+                border-radius: 20px;
+                font-weight: bold;
+                margin: 0.25rem;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            
+            .status-excellent {
+                background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+                color: white;
+            }
+            
+            .status-good {
+                background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+                color: white;
+            }
+            
+            .status-warning {
+                background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+                color: #212529;
+            }
+            
+            .status-danger {
+                background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+                color: white;
+            }
+            
+            /* Executive summary styling */
+            .executive-summary {
+                background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+                color: white;
+                padding: 2rem;
+                border-radius: 15px;
+                margin: 1.5rem 0;
+                box-shadow: 0 6px 24px rgba(40,167,69,0.2);
+                text-align: center;
+            }
+            
+            /* Real-time indicators */
+            .real-time-indicator {
+                display: inline-block;
+                width: 10px;
+                height: 10px;
+                background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+                border-radius: 50%;
+                animation: pulse 2s infinite;
+                margin-right: 8px;
+                box-shadow: 0 0 8px rgba(40,167,69,0.5);
+            }
+            
+            @keyframes pulse {
+                0% { opacity: 1; transform: scale(1); }
+                50% { opacity: 0.7; transform: scale(1.1); }
+                100% { opacity: 1; transform: scale(1); }
+            }
+            
+            /* Tables */
+            .dataframe {
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                border: 1px solid #dee2e6;
+            }
+            
+            /* Hide debug content by default */
+            .debug-content {
+                display: none;
+            }
+            
+            .debug-content.show {
+                display: block;
+                background: #f8f9fa;
+                padding: 1rem;
+                border-radius: 8px;
+                margin: 1rem 0;
+                border-left: 4px solid #6c757d;
+            }
+            
+            /* Responsive design */
+            @media (max-width: 768px) {
+                .main-header {
+                    padding: 1rem;
+                }
+                
+                .metric-card {
+                    padding: 1rem;
+                }
+                
+                .recommendation-box {
+                    padding: 1rem;
+                }
+            }
+        </style>
+        """, unsafe_allow_html=True)
 
-def render_header(self):
-    """Render professional header with optional status"""
-    st.markdown("""
-    <div class="main-header">
-        <h1>🏢 Enterprise Migration Platform</h1>
-        <p>AI-Powered Cloud Migration Analysis • AWS DataSync • RDS • Aurora</p>
-        <div class="status-bar" id="main-status">
-            <span>🟢 Platform Ready</span>
-            <span style="float: right;">Enterprise Edition v2.0</span>
+    def render_header(self):
+        """Render professional header with optional status"""
+        st.markdown("""
+        <div class="main-header">
+            <h1>🏢 Enterprise Migration Platform</h1>
+            <p>AI-Powered Cloud Migration Analysis • AWS DataSync • RDS • Aurora</p>
+            <div class="status-bar" id="main-status">
+                <span>🟢 Platform Ready</span>
+                <span style="float: right;">Enterprise Edition v2.0</span>
+            </div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-def render_connection_status_sidebar(self):
-    """Render clean connection status in sidebar (optional)"""
-    with st.sidebar:
-        show_debug = st.checkbox("🔧 Show System Status", value=False, 
-                                help="Display detailed system connection information")
-        
-        if show_debug:
-            st.markdown('<div class="debug-content show">', unsafe_allow_html=True)
+    def render_connection_status_sidebar(self):
+        """Render clean connection status in sidebar (optional)"""
+        with st.sidebar:
+            show_debug = st.checkbox("🔧 Show System Status", value=False, 
+                                    help="Display detailed system connection information")
             
-            st.subheader("🔗 System Status")
-            
-            # AWS Status
-            if hasattr(self.network_calculator, 'pricing_manager') and self.network_calculator.pricing_manager:
-                pm = self.network_calculator.pricing_manager
-                if hasattr(pm, 'connection_status'):
-                    status = pm.connection_status
-                    if status.get('connected', False):
-                        st.success(f"✅ AWS Connected ({status.get('source', 'Unknown')})")
-                        if 'account_id' in status:
-                            st.info(f"Account: {status['account_id']}")
+            if show_debug:
+                st.markdown('<div class="debug-content show">', unsafe_allow_html=True)
+                
+                st.subheader("🔗 System Status")
+                
+                # AWS Status
+                if hasattr(self.network_calculator, 'pricing_manager') and self.network_calculator.pricing_manager:
+                    pm = self.network_calculator.pricing_manager
+                    if hasattr(pm, 'connection_status'):
+                        status = pm.connection_status
+                        if status.get('connected', False):
+                            st.success(f"✅ AWS Connected ({status.get('source', 'Unknown')})")
+                            if 'account_id' in status:
+                                st.info(f"Account: {status['account_id']}")
+                        else:
+                            st.warning(f"⚠️ AWS: {status.get('error', 'Not configured')}")
                     else:
-                        st.warning(f"⚠️ AWS: {status.get('error', 'Not configured')}")
+                        st.warning("⚠️ AWS: Status unknown")
                 else:
-                    st.warning("⚠️ AWS: Status unknown")
-            else:
-                st.warning("⚠️ AWS: Not configured")
-            
-            # Claude AI Status
-            if hasattr(self, 'claude_ai') and self.claude_ai:
-                if hasattr(self.claude_ai, 'connection_status'):
-                    status = self.claude_ai.connection_status
-                    if status.get('connected', False):
-                        st.success("✅ Claude AI Connected")
+                    st.warning("⚠️ AWS: Not configured")
+                
+                # Claude AI Status
+                if hasattr(self, 'claude_ai') and self.claude_ai:
+                    if hasattr(self.claude_ai, 'connection_status'):
+                        status = self.claude_ai.connection_status
+                        if status.get('connected', False):
+                            st.success("✅ Claude AI Connected")
+                        else:
+                            st.warning(f"⚠️ Claude AI: {status.get('error', 'Not configured')}")
                     else:
-                        st.warning(f"⚠️ Claude AI: {status.get('error', 'Not configured')}")
+                        st.warning("⚠️ Claude AI: Status unknown")
                 else:
-                    st.warning("⚠️ Claude AI: Status unknown")
-            else:
-                st.warning("⚠️ Claude AI: Not available")
-            
-            # vROps Status
-            vrops_status = "🟢 Connected" if st.session_state.get('vrops_connected', False) else "🔴 Disconnected"
-            st.info(f"vROps: {vrops_status}")
-            
-            st.markdown('</div>', unsafe_allow_html=True)
+                    st.warning("⚠️ Claude AI: Not available")
+                
+                # vROps Status
+                vrops_status = "🟢 Connected" if st.session_state.get('vrops_connected', False) else "🔴 Disconnected"
+                st.info(f"vROps: {vrops_status}")
+                
+                st.markdown('</div>', unsafe_allow_html=True)
 
-def render_professional_navigation(self):
-    """Render professional navigation without clutter"""
-    st.markdown('<div class="nav-container">', unsafe_allow_html=True)
-    
-    col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 2, 2])
-    
-    with col1:
-        if st.button("🏠 Overview", key="nav_overview", use_container_width=True):
-            st.session_state.active_main_tab = "overview"
-    with col2:
-        if st.button("🌐 Network Migration", key="nav_network", use_container_width=True):
-            st.session_state.active_main_tab = "network"
-    with col3:
-        if st.button("🗄️ Database Migration", key="nav_database", use_container_width=True):
-            st.session_state.active_main_tab = "database"
-    with col4:
-        if st.button("📊 Analytics", key="nav_unified", use_container_width=True):
-            st.session_state.active_main_tab = "unified"
-    with col5:
-        if st.button("📋 Reports", key="nav_reports", use_container_width=True):
-            st.session_state.active_main_tab = "reports"
-    
-            st.markdown('</div>', unsafe_allow_html=True)
+    def render_professional_navigation(self):
+        """Render professional navigation without clutter"""
+        st.markdown('<div class="nav-container">', unsafe_allow_html=True)
         
-        def safe_dataframe_display(self, df, use_container_width=True, hide_index=True, **kwargs):
+        col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 2, 2])
+        
+        with col1:
+            if st.button("🏠 Overview", key="nav_overview", use_container_width=True):
+                st.session_state.active_main_tab = "overview"
+        with col2:
+            if st.button("🌐 Network Migration", key="nav_network", use_container_width=True):
+                st.session_state.active_main_tab = "network"
+        with col3:
+            if st.button("🗄️ Database Migration", key="nav_database", use_container_width=True):
+                st.session_state.active_main_tab = "database"
+        with col4:
+            if st.button("📊 Analytics", key="nav_unified", use_container_width=True):
+                st.session_state.active_main_tab = "unified"
+        with col5:
+            if st.button("📋 Reports", key="nav_reports", use_container_width=True):
+                st.session_state.active_main_tab = "reports"
+        
+                st.markdown('</div>', unsafe_allow_html=True)
+        
+    def safe_dataframe_display(self, df, use_container_width=True, hide_index=True, **kwargs):
             """Safely display a DataFrame by ensuring all values are strings to prevent type mixing"""
             try:
                 # Convert all values to strings to prevent type mixing issues
@@ -2071,7 +2071,7 @@ def render_professional_navigation(self):
                 st.write("Raw data:")
                 st.write(df)
 
-        def safe_float_conversion(self, value, default=0.0):
+    def safe_float_conversion(self, value, default=0.0):
             """Safely convert any value to float"""
             try:
                 if isinstance(value, str):
@@ -2084,7 +2084,7 @@ def render_professional_navigation(self):
             except (ValueError, TypeError):
                 return default
 
-        def safe_format_currency(self, value, decimal_places=0):
+    def safe_format_currency(self, value, decimal_places=0):
             """Safely format a value as currency"""
             try:
                 numeric_value = self.safe_float_conversion(value)
@@ -2095,7 +2095,7 @@ def render_professional_navigation(self):
             except:
                 return "$0"
         
-        def log_audit_event(self, event_type, details):
+    def log_audit_event(self, event_type, details):
             """Log audit events"""
             event = {
                 "timestamp": datetime.now().isoformat(),
@@ -2105,7 +2105,7 @@ def render_professional_navigation(self):
             }
             st.session_state.audit_log.append(event)
         
-        def render_header(self):
+    def render_header(self):
             """Render the unified main header"""
             st.markdown("""
             <div class="main-header">
@@ -2115,7 +2115,7 @@ def render_professional_navigation(self):
             </div>
             """, unsafe_allow_html=True)
         
-        def render_main_navigation(self):
+    def render_main_navigation(self):
             """Render professional navigation without clutter"""
             st.markdown('<div class="nav-container">', unsafe_allow_html=True)
             
