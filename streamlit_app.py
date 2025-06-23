@@ -5887,19 +5887,19 @@ def run(self):
     """, unsafe_allow_html=True)
             
             # Render appropriate main tab
-            if st.session_state.active_main_tab == "overview":
+    if st.session_state.active_main_tab == "overview":
                 self.render_overview_tab()
-            elif st.session_state.active_main_tab == "network":
+        elif st.session_state.active_main_tab == "network":
                 self.render_network_migration_platform()
-            elif st.session_state.active_main_tab == "database":
+        elif st.session_state.active_main_tab == "database":
                 self.render_database_migration_platform()
-            elif st.session_state.active_main_tab == "unified":
+        elif st.session_state.active_main_tab == "unified":
                 self.render_unified_analytics_tab()
-            elif st.session_state.active_main_tab == "reports":
+        elif st.session_state.active_main_tab == "reports":
                 self.render_reports_tab()
             
             # Update timestamp
-            self.last_update_time = current_time
+                self.last_update_time = current_time
             
             # Footer
             st.markdown("---")
