@@ -2565,6 +2565,21 @@ class EnterpriseMigrationPlatform:
                 dedicated_bandwidth = float(config.get('dedicated_bandwidth', 60))
                 num_datasync_agents = int(config.get('num_datasync_agents', 1))
                 
+                # AGENT OPTIMIZATION ANALYSIS
+                agent_analysis = self._analyze_datasync_agent_optimization(
+                    data_size_tb, dx_bandwidth_mbps, num_datasync_agents, config
+                )
+                
+                # Calculate throughput with current configuration
+                throughput_result = self.network_calculator.calculate_enterprise_throughput(
+                    config['datasync_instance_type'], num_datasync_agents, config['avg_file_size'], 
+                    config['dx_bandwidth_mbps'], config['network_latency'], config['network_jitter'], 
+                    config['packet_loss'], config['qos_enabled'], config['dedicated_bandwidth'], 
+                    config.get('real_world_mode', True)
+                )
+                
+                
+                
                 # Calculate throughput with optimizations
                 throughput_result = self.network_calculator.calculate_enterprise_throughput(
                     config['datasync_instance_type'], config['num_datasync_agents'], config['avg_file_size'], 
@@ -2662,7 +2677,7 @@ class EnterpriseMigrationPlatform:
                     transfer_days, config.get('data_types', [])
                 )
                 
-                # Get AI-powered networking recommendations
+                 # Get AI-powered networking recommendations with agent optimization
                 target_region_short = config.get('target_aws_region', 'us-east-1').split()[0]
                 networking_recommendations = self.network_calculator.get_optimal_networking_architecture(
                     config.get('source_location', 'San Jose, CA'), 
@@ -2673,6 +2688,9 @@ class EnterpriseMigrationPlatform:
                     config.get('data_types', []), 
                     config
                 )
+                
+                # Enhance networking recommendations with agent analysis
+                networking_recommendations['agent_optimization'] = agent_analysis
                 
                 return {
                     'data_size_tb': data_size_tb,
@@ -2688,7 +2706,8 @@ class EnterpriseMigrationPlatform:
                     'compliance_risks': compliance_risks,
                     'business_impact': business_impact,
                     'available_hours_per_day': available_hours_per_day,
-                    'networking_recommendations': networking_recommendations
+                    'networking_recommendations': networking_recommendations,
+                    'agent_analysis': agent_analysis  # Include detailed agent analysis
                 }
                 
             except Exception as e:
@@ -2728,6 +2747,194 @@ class EnterpriseMigrationPlatform:
                         'risk_level': 'Low'
                     }
                 }
+    
+    def _analyze_datasync_agent_optimization(self, data_size_tb, dx_bandwidth_mbps, current_agents, config):
+    """Analyze DataSync agent configuration and provide optimization recommendations"""
+    try:
+        # Calculate optimal agent count based on various factors
+        
+        # Factor 1: Data size optimization
+        # Rule: 1 agent per 5-10TB for optimal performance
+        size_based_agents = max(1, min(10, int(data_size_tb / 7)))  # Sweet spot at 7TB per agent
+        
+        # Factor 2: Bandwidth optimization  
+        # Rule: Each agent can effectively utilize 500-1000 Mbps
+        bandwidth_based_agents = max(1, min(20, int(dx_bandwidth_mbps / 750)))  # 750 Mbps per agent optimal
+        
+        # Factor 3: File characteristics
+        avg_file_size = config.get('avg_file_size', '10-100MB (Medium files)')
+        if 'small files' in avg_file_size.lower():
+            file_factor = 1.5  # More agents for small files
+        elif 'large files' in avg_file_size.lower():
+            file_factor = 0.8  # Fewer agents for large files
+        else:
+            file_factor = 1.0
+        
+        # Factor 4: Network conditions
+        network_latency = float(config.get('network_latency', 25))
+        packet_loss = float(config.get('packet_loss', 0.1))
+        
+        network_factor = 1.0
+        if network_latency > 50:
+            network_factor += 0.3  # More agents for high latency
+        if packet_loss > 0.5:
+            network_factor += 0.2  # More agents for packet loss
+        
+        # Calculate recommended agents
+        recommended_agents = int((size_based_agents + bandwidth_based_agents) / 2 * file_factor * network_factor)
+        recommended_agents = max(1, min(15, recommended_agents))  # Cap between 1-15
+        
+        # Performance analysis
+        current_efficiency = self._calculate_agent_efficiency(current_agents, data_size_tb, dx_bandwidth_mbps)
+        optimal_efficiency = self._calculate_agent_efficiency(recommended_agents, data_size_tb, dx_bandwidth_mbps)
+        
+        # Cost impact analysis
+        agent_hourly_cost = self._get_agent_hourly_cost(config.get('datasync_instance_type', 'm5.large'))
+        current_cost_per_hour = current_agents * agent_hourly_cost
+        recommended_cost_per_hour = recommended_agents * agent_hourly_cost
+        cost_change_pct = ((recommended_cost_per_hour - current_cost_per_hour) / current_cost_per_hour) * 100
+        
+        # Performance impact analysis
+        performance_gain_pct = ((optimal_efficiency - current_efficiency) / current_efficiency) * 100
+        
+        # Generate recommendations
+        if recommended_agents > current_agents:
+            change_type = "INCREASE"
+            reason = f"Scale up from {current_agents} to {recommended_agents} agents"
+            if data_size_tb > 20:
+                reason += f" to handle large dataset ({data_size_tb:.1f}TB) efficiently"
+            elif dx_bandwidth_mbps > 5000:
+                reason += f" to utilize high bandwidth ({dx_bandwidth_mbps} Mbps) effectively"
+            else:
+                reason += " to improve parallel processing and reduce transfer time"
+                
+        elif recommended_agents < current_agents:
+            change_type = "DECREASE"
+            reason = f"Scale down from {current_agents} to {recommended_agents} agents"
+            reason += " to reduce costs without significant performance impact"
+            
+        else:
+            change_type = "OPTIMAL"
+            reason = f"Current {current_agents} agents is optimal for your workload"
+        
+        # Time impact analysis
+        if change_type != "OPTIMAL":
+            time_change_pct = -performance_gain_pct * 0.8  # Approximate time reduction
+            time_impact = f"{abs(time_change_pct):.1f}% {'faster' if time_change_pct < 0 else 'slower'}"
+        else:
+            time_impact = "No change"
+        
+        # Risk assessment
+        if change_type == "INCREASE" and cost_change_pct > 50:
+            risk_level = "Medium - Significant cost increase"
+        elif change_type == "DECREASE" and performance_gain_pct < -20:
+            risk_level = "Medium - Performance degradation"
+        else:
+            risk_level = "Low"
+        
+        # Scenarios analysis
+        scenarios = []
+        
+        # Conservative scenario (minimal change)
+        conservative_agents = current_agents + (1 if change_type == "INCREASE" else (-1 if change_type == "DECREASE" else 0))
+        conservative_agents = max(1, conservative_agents)
+        
+        scenarios.append({
+            "name": "Conservative",
+            "agents": conservative_agents,
+            "performance_change": f"{performance_gain_pct/2:+.1f}%",
+            "cost_change": f"{cost_change_pct/2:+.1f}%",
+            "risk": "Low"
+        })
+        
+        # Recommended scenario
+        scenarios.append({
+            "name": "Recommended",
+            "agents": recommended_agents,
+            "performance_change": f"{performance_gain_pct:+.1f}%",
+            "cost_change": f"{cost_change_pct:+.1f}%",
+            "risk": risk_level.split(" - ")[0]
+        })
+        
+        # Aggressive scenario (maximum performance)
+        aggressive_agents = min(20, recommended_agents + 2)
+        aggressive_performance = performance_gain_pct * 1.3
+        aggressive_cost = cost_change_pct * 1.5
+        
+        scenarios.append({
+            "name": "Aggressive",
+            "agents": aggressive_agents,
+            "performance_change": f"{aggressive_performance:+.1f}%",
+            "cost_change": f"{aggressive_cost:+.1f}%",
+            "risk": "Medium-High"
+        })
+        
+        return {
+            "status": change_type,
+            "current_agents": current_agents,
+            "recommended_agents": recommended_agents,
+            "change_needed": recommended_agents - current_agents,
+            "reasoning": reason,
+            "performance_impact": {
+                "current_efficiency": f"{current_efficiency:.1f}%",
+                "optimal_efficiency": f"{optimal_efficiency:.1f}%",
+                "performance_gain": f"{performance_gain_pct:+.1f}%",
+                "time_impact": time_impact
+            },
+            "cost_impact": {
+                "current_hourly_cost": f"${current_cost_per_hour:.2f}",
+                "recommended_hourly_cost": f"${recommended_cost_per_hour:.2f}",
+                "cost_change_pct": f"{cost_change_pct:+.1f}%"
+            },
+            "risk_assessment": risk_level,
+            "scenarios": scenarios,
+            "factors_considered": {
+                "data_size_factor": f"{data_size_tb:.1f}TB → {size_based_agents} agents",
+                "bandwidth_factor": f"{dx_bandwidth_mbps} Mbps → {bandwidth_based_agents} agents",
+                "file_size_factor": f"{avg_file_size} → {file_factor:.1f}x multiplier",
+                "network_factor": f"Latency: {network_latency}ms, Loss: {packet_loss}% → {network_factor:.1f}x multiplier"
+            }
+        }
+        
+    except Exception as e:
+        return {
+            "status": "ERROR",
+            "error": str(e),
+            "current_agents": current_agents,
+            "recommended_agents": current_agents,
+            "recommendation": "Unable to analyze agent optimization"
+        }
+
+    def _calculate_agent_efficiency(self, num_agents, data_size_tb, bandwidth_mbps):
+        """Calculate efficiency percentage for given agent configuration"""
+        # Efficiency factors
+        size_efficiency = min(100, (num_agents * 7) / data_size_tb * 100)  # 7TB per agent optimal
+        bandwidth_efficiency = min(100, (num_agents * 750) / bandwidth_mbps * 100)  # 750 Mbps per agent optimal
+        
+        # Diminishing returns after 10 agents
+        scaling_efficiency = 100 if num_agents <= 10 else max(60, 100 - (num_agents - 10) * 5)
+        
+        # Overall efficiency is the harmonic mean
+        overall_efficiency = 3 / (1/size_efficiency + 1/bandwidth_efficiency + 1/scaling_efficiency) * 100
+        return min(100, max(10, overall_efficiency))
+
+    def _get_agent_hourly_cost(self, instance_type):
+        """Get hourly cost for DataSync agent instance"""
+        instance_costs = {
+            "m5.large": 0.096,
+            "m5.xlarge": 0.192,
+            "m5.2xlarge": 0.384,
+            "m5.4xlarge": 0.768,
+            "m5.8xlarge": 1.536,
+            "c5.2xlarge": 0.34,
+            "c5.4xlarge": 0.68,
+            "c5.9xlarge": 1.53,
+            "r5.2xlarge": 0.504,
+            "r5.4xlarge": 1.008
+        }
+        return instance_costs.get(instance_type, 0.096)
+    
+     
         
     def render_network_dashboard_tab(self, config, metrics):
             """Render network dashboard tab with full functionality"""
@@ -3159,6 +3366,67 @@ class EnterpriseMigrationPlatform:
                 height=400
             )
             st.plotly_chart(fig_opt, use_container_width=True)
+            
+            
+                    # ADD THIS SECTION for Agent Optimization
+            if 'agent_analysis' in metrics:
+                st.markdown('<div class="section-header">🚀 DataSync Agent Optimization</div>', unsafe_allow_html=True)
+                
+                agent_analysis = metrics['agent_analysis']
+                
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    status_color = {
+                        "INCREASE": "🔼 Scale Up",
+                        "DECREASE": "🔽 Scale Down", 
+                        "OPTIMAL": "✅ Optimal"
+                    }.get(agent_analysis['status'], "❓ Unknown")
+                    
+                    st.metric("Agent Status", status_color)
+                    st.metric("Current Agents", agent_analysis['current_agents'])
+                    st.metric("Recommended", agent_analysis['recommended_agents'])
+                
+                with col2:
+                    perf_impact = agent_analysis.get('performance_impact', {})
+                    st.metric("Current Efficiency", perf_impact.get('current_efficiency', 'N/A'))
+                    st.metric("Optimal Efficiency", perf_impact.get('optimal_efficiency', 'N/A'))
+                    st.metric("Performance Gain", perf_impact.get('performance_gain', 'N/A'))
+                
+                with col3:
+                    cost_impact = agent_analysis.get('cost_impact', {})
+                    st.metric("Current Cost/Hour", cost_impact.get('current_hourly_cost', 'N/A'))
+                    st.metric("Recommended Cost", cost_impact.get('recommended_hourly_cost', 'N/A'))
+                    st.metric("Cost Change", cost_impact.get('cost_change_pct', 'N/A'))
+                
+                # Recommendation Details
+                st.markdown(f"""
+                <div class="recommendation-box">
+                    <h4>🎯 Agent Optimization Recommendation</h4>
+                    <p><strong>Action:</strong> {agent_analysis['reasoning']}</p>
+                    <p><strong>Performance Impact:</strong> {perf_impact.get('time_impact', 'No change')}</p>
+                    <p><strong>Risk Level:</strong> {agent_analysis.get('risk_assessment', 'Unknown')}</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Scenarios Comparison
+                if 'scenarios' in agent_analysis:
+                    st.subheader("📊 Agent Configuration Scenarios")
+                    
+                    scenarios_data = []
+                    for scenario in agent_analysis['scenarios']:
+                        scenarios_data.append({
+                            "Scenario": scenario['name'],
+                            "Agents": scenario['agents'],
+                            "Performance Change": scenario['performance_change'],
+                            "Cost Change": scenario['cost_change'],
+                            "Risk Level": scenario['risk']
+                        })
+                    
+                    scenarios_df = pd.DataFrame(scenarios_data)
+                    st.dataframe(scenarios_df, use_container_width=True)
+            
+            
             
             # DataSync Optimization Analysis
             st.markdown('<div class="section-header">🚀 DataSync Configuration Optimization</div>', unsafe_allow_html=True)
