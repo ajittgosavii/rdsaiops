@@ -1047,109 +1047,109 @@ class EnterpriseCalculator:
             "recommendation": recommendation
         }
     
-def get_optimal_networking_architecture(self, source_location, target_region, data_size_gb,
-                                      dx_bandwidth_mbps, database_types, data_types, config):
-    """Get AI-powered networking recommendations"""
-    
-    # Analyze requirements
-    data_size_tb = data_size_gb / 1024
-    has_databases = len(database_types) > 0
-    has_critical_data = any(dt in ["Customer Data", "Financial Records"] for dt in data_types)
-    analyze_all_methods = config.get('analyze_all_methods', False)
-    
-    # Determine primary method based on analysis scope
-    if analyze_all_methods:
-        # Comprehensive analysis - consider hybrid approaches
-        if data_size_tb > 100:
-            if dx_bandwidth_mbps >= 10000:
-                primary_method = "DataSync Multi-Agent"
+    def get_optimal_networking_architecture(self, source_location, target_region, data_size_gb,
+                                        dx_bandwidth_mbps, database_types, data_types, config):
+        """Get AI-powered networking recommendations"""
+        
+        # Analyze requirements
+        data_size_tb = data_size_gb / 1024
+        has_databases = len(database_types) > 0
+        has_critical_data = any(dt in ["Customer Data", "Financial Records"] for dt in data_types)
+        analyze_all_methods = config.get('analyze_all_methods', False)
+        
+        # Determine primary method based on analysis scope
+        if analyze_all_methods:
+            # Comprehensive analysis - consider hybrid approaches
+            if data_size_tb > 100:
+                if dx_bandwidth_mbps >= 10000:
+                    primary_method = "DataSync Multi-Agent"
+                else:
+                    primary_method = "Snowball Edge"
+            elif has_databases:
+                primary_method = "DMS + DataSync"  # Hybrid approach for comprehensive analysis
             else:
-                primary_method = "Snowball Edge"
+                primary_method = "DataSync"
+        else:
+            # Simple analysis - stick to core DataSync recommendations
+            if data_size_tb > 100 and dx_bandwidth_mbps < 1000:
+                primary_method = "Snowball Edge"  # Only for very large data + limited bandwidth
+            else:
+                primary_method = "AWS DataSync"  # Default to DataSync for simple analysis
+        
+        # Determine secondary method
+        if has_critical_data:
+            secondary_method = "S3 Transfer Acceleration"
+        else:
+            secondary_method = "Standard Transfer"
+        
+        # Determine networking option
+        if dx_bandwidth_mbps >= 1000:
+            networking_option = "Direct Connect (Primary)"
+        elif config.get('qos_enabled', False):
+            networking_option = "Direct Connect + VPN Backup"
+        else:
+            networking_option = "VPN Connection"
+        
+        # Database migration tool - only suggest complex tools in comprehensive mode
+        if has_databases and analyze_all_methods:
+            if len(database_types) > 1:
+                db_migration_tool = "DMS + Custom Scripts"
+            else:
+                db_migration_tool = "DMS"
         elif has_databases:
-            primary_method = "DMS + DataSync"  # Hybrid approach for comprehensive analysis
+            db_migration_tool = "DMS"  # Simple DMS recommendation
         else:
-            primary_method = "DataSync"
-    else:
-        # Simple analysis - stick to core DataSync recommendations
-        if data_size_tb > 100 and dx_bandwidth_mbps < 1000:
-            primary_method = "Snowball Edge"  # Only for very large data + limited bandwidth
-        else:
-            primary_method = "AWS DataSync"  # Default to DataSync for simple analysis
-    
-    # Determine secondary method
-    if has_critical_data:
-        secondary_method = "S3 Transfer Acceleration"
-    else:
-        secondary_method = "Standard Transfer"
-    
-    # Determine networking option
-    if dx_bandwidth_mbps >= 1000:
-        networking_option = "Direct Connect (Primary)"
-    elif config.get('qos_enabled', False):
-        networking_option = "Direct Connect + VPN Backup"
-    else:
-        networking_option = "VPN Connection"
-    
-    # Database migration tool - only suggest complex tools in comprehensive mode
-    if has_databases and analyze_all_methods:
-        if len(database_types) > 1:
-            db_migration_tool = "DMS + Custom Scripts"
-        else:
-            db_migration_tool = "DMS"
-    elif has_databases:
-        db_migration_tool = "DMS"  # Simple DMS recommendation
-    else:
-        db_migration_tool = "N/A"
-    
-    # Rest of the method remains the same...
-    # [Keep all the existing calculation code for performance, rationale, etc.]
+            db_migration_tool = "N/A"
         
-        # Calculate estimated performance
-        estimated_throughput = min(dx_bandwidth_mbps * 0.8, 2000)  # Conservative estimate
-        estimated_days = (data_size_gb * 8) / (estimated_throughput * 24 * 3600) / 1000
-        network_efficiency = 0.75 if dx_bandwidth_mbps >= 1000 else 0.6
+        # Rest of the method remains the same...
+        # [Keep all the existing calculation code for performance, rationale, etc.]
+            
+            # Calculate estimated performance
+            estimated_throughput = min(dx_bandwidth_mbps * 0.8, 2000)  # Conservative estimate
+            estimated_days = (data_size_gb * 8) / (estimated_throughput * 24 * 3600) / 1000
+            network_efficiency = 0.75 if dx_bandwidth_mbps >= 1000 else 0.6
+            
+            # Risk assessment
+            if data_size_tb > 50:
+                risk_level = "High"
+            elif dx_bandwidth_mbps < 1000:
+                risk_level = "Medium"
+            else:
+                risk_level = "Low"
+            
+            # Cost efficiency
+            cost_per_tb = 1000 if dx_bandwidth_mbps >= 1000 else 1500
+            if cost_per_tb < 1200:
+                cost_efficiency = "High"
+            elif cost_per_tb < 1400:
+                cost_efficiency = "Medium"
+            else:
+                cost_efficiency = "Low"
+            
+            # Generate rationale
+            rationale = f"""
+            Based on {data_size_tb:.1f}TB dataset with {dx_bandwidth_mbps} Mbps bandwidth:
+            • {primary_method} recommended for optimal throughput and reliability
+            • {networking_option} provides best balance of performance and cost
+            • Estimated {estimated_days:.1f} days with {estimated_throughput:.0f} Mbps sustained throughput
+            • {risk_level} risk profile managed through redundancy and monitoring
+            """
+            
+            return {
+                "primary_method": primary_method,
+                "secondary_method": secondary_method,
+                "networking_option": networking_option,
+                "db_migration_tool": db_migration_tool,
+                "rationale": rationale.strip(),
+                "estimated_performance": {
+                    "throughput_mbps": estimated_throughput,
+                    "estimated_days": estimated_days,
+                    "network_efficiency": network_efficiency
+                },
+                "cost_efficiency": cost_efficiency,
+                "risk_level": risk_level
+            }
         
-        # Risk assessment
-        if data_size_tb > 50:
-            risk_level = "High"
-        elif dx_bandwidth_mbps < 1000:
-            risk_level = "Medium"
-        else:
-            risk_level = "Low"
-        
-        # Cost efficiency
-        cost_per_tb = 1000 if dx_bandwidth_mbps >= 1000 else 1500
-        if cost_per_tb < 1200:
-            cost_efficiency = "High"
-        elif cost_per_tb < 1400:
-            cost_efficiency = "Medium"
-        else:
-            cost_efficiency = "Low"
-        
-        # Generate rationale
-        rationale = f"""
-        Based on {data_size_tb:.1f}TB dataset with {dx_bandwidth_mbps} Mbps bandwidth:
-        • {primary_method} recommended for optimal throughput and reliability
-        • {networking_option} provides best balance of performance and cost
-        • Estimated {estimated_days:.1f} days with {estimated_throughput:.0f} Mbps sustained throughput
-        • {risk_level} risk profile managed through redundancy and monitoring
-        """
-        
-        return {
-            "primary_method": primary_method,
-            "secondary_method": secondary_method,
-            "networking_option": networking_option,
-            "db_migration_tool": db_migration_tool,
-            "rationale": rationale.strip(),
-            "estimated_performance": {
-                "throughput_mbps": estimated_throughput,
-                "estimated_days": estimated_days,
-                "network_efficiency": network_efficiency
-            },
-            "cost_efficiency": cost_efficiency,
-            "risk_level": risk_level
-        }
-    
     def get_intelligent_datasync_recommendations(self, config, metrics):
         """Get intelligent DataSync optimization recommendations"""
         try:
