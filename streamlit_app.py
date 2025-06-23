@@ -3569,9 +3569,9 @@ def render_comprehensive_migration_analysis(self, config, metrics):
             self.render_database_configuration_tab()
         elif st.session_state.active_database_tab == "sizing":            
         elif st.session_state.active_database_tab == "bulk_upload":  # NEW
-        self.render_bulk_upload_tab()
+            self.render_bulk_upload_tab()
         elif st.session_state.active_database_tab == "vrops":  # NEW
-        self.render_vrops_integration_tab()        
+            self.render_vrops_integration_tab()        
             self.render_database_sizing_tab()
         elif st.session_state.active_database_tab == "cost":
             self.render_database_cost_tab()
