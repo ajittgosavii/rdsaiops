@@ -369,21 +369,21 @@ class AWSPricingManager:
     
     def _init_clients(self):
         """Initialize AWS clients using Streamlit secrets"""
-        try:
-            # Try to get AWS credentials from Streamlit secrets
-             aws_access_key = None
-             aws_secret_key = None
-             aws_region = self.region
-             credential_source = "Unknown"
-            
             try:
-                # Check if AWS secrets are configured in .streamlit/secrets.toml
-                if hasattr(st, 'secrets') and 'aws' in st.secrets:
-                    aws_access_key = st.secrets["aws"]["access_key_id"]
-                    aws_secret_key = st.secrets["aws"]["secret_access_key"]
-                    aws_region = st.secrets["aws"].get("region", self.region)
-                    credential_source = "Streamlit Secrets"
-                    st.success("🔑 AWS credentials loaded from secrets.toml")
+                # Try to get AWS credentials from Streamlit secrets
+                aws_access_key = None
+                aws_secret_key = None
+                aws_region = self.region
+                credential_source = "Unknown"
+                
+                try:
+                    # Check if AWS secrets are configured in .streamlit/secrets.toml
+                    if hasattr(st, 'secrets') and 'aws' in st.secrets:
+                        aws_access_key = st.secrets["aws"]["access_key_id"]
+                        aws_secret_key = st.secrets["aws"]["secret_access_key"]
+                        aws_region = st.secrets["aws"].get("region", self.region)
+                        credential_source = "Streamlit Secrets"
+                        st.success("🔑 AWS credentials loaded from secrets.toml")
                     
                     # Create clients with explicit credentials
                     self.pricing_client = boto3.client(
