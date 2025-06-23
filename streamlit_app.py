@@ -2792,12 +2792,20 @@ class EnterpriseMigrationPlatform:
             agent_hourly_cost = self._get_agent_hourly_cost(config.get('datasync_instance_type', 'm5.large'))
             current_cost_per_hour = current_agents * agent_hourly_cost
             recommended_cost_per_hour = recommended_agents * agent_hourly_cost
-            cost_change_pct = ((recommended_cost_per_hour - current_cost_per_hour) / current_cost_per_hour) * 100
+            
+            # Avoid division by zero
+            if current_cost_per_hour > 0:
+                cost_change_pct = ((recommended_cost_per_hour - current_cost_per_hour) / current_cost_per_hour) * 100
+            else:
+                cost_change_pct = 0
             
             # Performance impact analysis
-            performance_gain_pct = ((optimal_efficiency - current_efficiency) / current_efficiency) * 100
+            if current_efficiency > 0:
+                performance_gain_pct = ((optimal_efficiency - current_efficiency) / current_efficiency) * 100
+            else:
+                performance_gain_pct = 0
             
-        # Generate recommendations
+            # Generate recommendations
             if recommended_agents > current_agents:
                 change_type = "INCREASE"
                 reason = f"Scale up from {current_agents} to {recommended_agents} agents"
@@ -2820,7 +2828,10 @@ class EnterpriseMigrationPlatform:
             # Time impact analysis
             if change_type != "OPTIMAL":
                 time_change_pct = -performance_gain_pct * 0.8  # Approximate time reduction
-                time_impact = f"{abs(time_change_pct):.1f}% {'faster' if time_change_pct < 0 else 'slower'}"
+                if time_change_pct != 0:
+                    time_impact = f"{abs(time_change_pct):.1f}% {'faster' if time_change_pct < 0 else 'slower'}"
+                else:
+                    time_impact = "No significant change"
             else:
                 time_impact = "No change"
             
@@ -2831,19 +2842,36 @@ class EnterpriseMigrationPlatform:
                 risk_level = "Medium - Performance degradation"
             else:
                 risk_level = "Low"
-        
+            
             # Scenarios analysis
             scenarios = []
             
             # Conservative scenario (minimal change)
-            conservative_agents = current_agents + (1 if change_type == "INCREASE" else (-1 if change_type == "DECREASE" else 0))
-            conservative_agents = max(1, conservative_agents)
+            if change_type == "INCREASE":
+                conservative_agents = current_agents + 1
+            elif change_type == "DECREASE":
+                conservative_agents = max(1, current_agents - 1)
+            else:
+                conservative_agents = current_agents
+            
+            # Calculate conservative scenario impacts
+            conservative_efficiency = self._calculate_agent_efficiency(conservative_agents, data_size_tb, dx_bandwidth_mbps)
+            if current_efficiency > 0:
+                conservative_perf_gain = ((conservative_efficiency - current_efficiency) / current_efficiency) * 100
+            else:
+                conservative_perf_gain = 0
+            
+            conservative_cost_per_hour = conservative_agents * agent_hourly_cost
+            if current_cost_per_hour > 0:
+                conservative_cost_change = ((conservative_cost_per_hour - current_cost_per_hour) / current_cost_per_hour) * 100
+            else:
+                conservative_cost_change = 0
             
             scenarios.append({
                 "name": "Conservative",
                 "agents": conservative_agents,
-                "performance_change": f"{performance_gain_pct/2:+.1f}%",
-                "cost_change": f"{cost_change_pct/2:+.1f}%",
+                "performance_change": f"{conservative_perf_gain:+.1f}%",
+                "cost_change": f"{conservative_cost_change:+.1f}%",
                 "risk": "Low"
             })
             
@@ -2853,13 +2881,23 @@ class EnterpriseMigrationPlatform:
                 "agents": recommended_agents,
                 "performance_change": f"{performance_gain_pct:+.1f}%",
                 "cost_change": f"{cost_change_pct:+.1f}%",
-                "risk": risk_level.split(" - ")[0]
+                "risk": risk_level.split(" - ")[0] if " - " in risk_level else risk_level
             })
             
             # Aggressive scenario (maximum performance)
-            aggressive_agents = min(20, recommended_agents + 2)
-            aggressive_performance = performance_gain_pct * 1.3
-            aggressive_cost = cost_change_pct * 1.5
+            aggressive_agents = min(20, max(recommended_agents + 2, current_agents + 3))
+            aggressive_efficiency = self._calculate_agent_efficiency(aggressive_agents, data_size_tb, dx_bandwidth_mbps)
+            
+            if current_efficiency > 0:
+                aggressive_performance = ((aggressive_efficiency - current_efficiency) / current_efficiency) * 100
+            else:
+                aggressive_performance = 0
+            
+            aggressive_cost_per_hour = aggressive_agents * agent_hourly_cost
+            if current_cost_per_hour > 0:
+                aggressive_cost = ((aggressive_cost_per_hour - current_cost_per_hour) / current_cost_per_hour) * 100
+            else:
+                aggressive_cost = 0
             
             scenarios.append({
                 "name": "Aggressive",
@@ -2869,54 +2907,67 @@ class EnterpriseMigrationPlatform:
                 "risk": "Medium-High"
             })
             
-        return {
-            "status": change_type,
-            "current_agents": current_agents,
-            "recommended_agents": recommended_agents,
-            "change_needed": recommended_agents - current_agents,
-            "reasoning": reason,
-            "performance_impact": {
-                "current_efficiency": f"{current_efficiency:.1f}%",
-                "optimal_efficiency": f"{optimal_efficiency:.1f}%",
-                "performance_gain": f"{performance_gain_pct:+.1f}%",
-                "time_impact": time_impact
-            },
-            "cost_impact": {
-                "current_hourly_cost": f"${current_cost_per_hour:.2f}",
-                "recommended_hourly_cost": f"${recommended_cost_per_hour:.2f}",
-                "cost_change_pct": f"{cost_change_pct:+.1f}%"
-            },
-            "risk_assessment": risk_level,
-            "scenarios": scenarios,
-            "factors_considered": {
-                "data_size_factor": f"{data_size_tb:.1f}TB → {size_based_agents} agents",
-                "bandwidth_factor": f"{dx_bandwidth_mbps} Mbps → {bandwidth_based_agents} agents",
-                "file_size_factor": f"{avg_file_size} → {file_factor:.1f}x multiplier",
-                "network_factor": f"Latency: {network_latency}ms, Loss: {packet_loss}% → {network_factor:.1f}x multiplier"
+            return {
+                "status": change_type,
+                "current_agents": current_agents,
+                "recommended_agents": recommended_agents,
+                "change_needed": recommended_agents - current_agents,
+                "reasoning": reason,
+                "performance_impact": {
+                    "current_efficiency": f"{current_efficiency:.1f}%",
+                    "optimal_efficiency": f"{optimal_efficiency:.1f}%",
+                    "performance_gain": f"{performance_gain_pct:+.1f}%",
+                    "time_impact": time_impact
+                },
+                "cost_impact": {
+                    "current_hourly_cost": f"${current_cost_per_hour:.2f}",
+                    "recommended_hourly_cost": f"${recommended_cost_per_hour:.2f}",
+                    "cost_change_pct": f"{cost_change_pct:+.1f}%"
+                },
+                "risk_assessment": risk_level,
+                "scenarios": scenarios,
+                "factors_considered": {
+                    "data_size_factor": f"{data_size_tb:.1f}TB → {size_based_agents} agents",
+                    "bandwidth_factor": f"{dx_bandwidth_mbps} Mbps → {bandwidth_based_agents} agents",
+                    "file_size_factor": f"{avg_file_size} → {file_factor:.1f}x multiplier",
+                    "network_factor": f"Latency: {network_latency}ms, Loss: {packet_loss}% → {network_factor:.1f}x multiplier"
+                }
             }
-        }
-        
-    except Exception as e:
-        return {
-            "status": "ERROR",
-            "error": str(e),
-            "current_agents": current_agents,
-            "recommended_agents": current_agents,
-            "recommendation": "Unable to analyze agent optimization"
-        }
+            
+        except Exception as e:
+            return {
+                "status": "ERROR",
+                "error": str(e),
+                "current_agents": current_agents,
+                "recommended_agents": current_agents,
+                "recommendation": "Unable to analyze agent optimization"
+            }
 
     def _calculate_agent_efficiency(self, num_agents, data_size_tb, bandwidth_mbps):
         """Calculate efficiency percentage for given agent configuration"""
-        # Efficiency factors
-        size_efficiency = min(100, (num_agents * 7) / data_size_tb * 100)  # 7TB per agent optimal
-        bandwidth_efficiency = min(100, (num_agents * 750) / bandwidth_mbps * 100)  # 750 Mbps per agent optimal
-        
-        # Diminishing returns after 10 agents
-        scaling_efficiency = 100 if num_agents <= 10 else max(60, 100 - (num_agents - 10) * 5)
-        
-        # Overall efficiency is the harmonic mean
-        overall_efficiency = 3 / (1/size_efficiency + 1/bandwidth_efficiency + 1/scaling_efficiency) * 100
-        return min(100, max(10, overall_efficiency))
+        try:
+            # Efficiency factors
+            size_efficiency = min(100, (num_agents * 7) / max(0.1, data_size_tb) * 100)  # 7TB per agent optimal, avoid division by zero
+            bandwidth_efficiency = min(100, (num_agents * 750) / max(1, bandwidth_mbps) * 100)  # 750 Mbps per agent optimal, avoid division by zero
+            
+            # Diminishing returns after 10 agents
+            if num_agents <= 10:
+                scaling_efficiency = 100
+            else:
+                scaling_efficiency = max(60, 100 - (num_agents - 10) * 5)
+            
+            # Overall efficiency using harmonic mean (but protect against division by zero)
+            if size_efficiency > 0 and bandwidth_efficiency > 0 and scaling_efficiency > 0:
+                overall_efficiency = 3 / (1/size_efficiency + 1/bandwidth_efficiency + 1/scaling_efficiency) * 100
+            else:
+                # Fallback to arithmetic mean if any efficiency is zero
+                overall_efficiency = (size_efficiency + bandwidth_efficiency + scaling_efficiency) / 3
+            
+            return min(100, max(10, overall_efficiency))
+            
+        except Exception as e:
+            # Return a reasonable default if calculation fails
+            return 50.0
 
     def _get_agent_hourly_cost(self, instance_type):
         """Get hourly cost for DataSync agent instance"""
@@ -2932,8 +2983,7 @@ class EnterpriseMigrationPlatform:
             "r5.2xlarge": 0.504,
             "r5.4xlarge": 1.008
         }
-        return instance_costs.get(instance_type, 0.096)
-    
+        return instance_costs.get(instance_type, 0.096)  # Default to m5.large cost
      
         
     def render_network_dashboard_tab(self, config, metrics):
