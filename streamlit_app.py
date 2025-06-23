@@ -2367,7 +2367,7 @@ class EnterpriseMigrationPlatform:
                 if hasattr(st, 'secrets') and 'aws' in st.secrets:
                     aws_configured = True
                     aws_region = st.secrets["aws"].get("region", "us-east-1")
-                    credential_source = "Streamlit Secrets
+                    credential_source = "Streamlit Secrets"
                 
                 else:
                     # Method 2: Check if boto3 can create a client (default credential chain)
