@@ -3988,7 +3988,7 @@ def render_bulk_upload_tab(self):
                 mime="text/csv"
             )
 
-    def render_vrops_integration_tab(self):
+def render_vrops_integration_tab(self):
         """Render vROps integration section"""
         st.markdown('<div class="section-header">🔌 vRealize Operations Integration</div>', unsafe_allow_html=True)
         
@@ -4107,7 +4107,7 @@ def render_bulk_upload_tab(self):
             • Prevent over/under-provisioning
             """)
             
-    def run(self):
+def run(self):
         """Main application entry point"""
         # Render unified header and navigation
         self.render_header()
@@ -4161,7 +4161,7 @@ def render_bulk_upload_tab(self):
     # UNIFIED ANALYTICS AND REPORTS
     # =========================================================================
     
-    def render_unified_analytics_tab(self):
+def render_unified_analytics_tab(self):
         """Render unified analytics combining network and database insights"""
         st.markdown('<div class="section-header">📊 Unified Migration Analytics</div>', unsafe_allow_html=True)
         
@@ -4189,7 +4189,7 @@ def render_bulk_upload_tab(self):
         </div>
         """, unsafe_allow_html=True)
     
-    def render_reports_tab(self):
+def render_reports_tab(self):
         """Render comprehensive reporting dashboard"""
         st.markdown('<div class="section-header">📋 Enterprise Migration Reports</div>', unsafe_allow_html=True)
         
@@ -4242,17 +4242,17 @@ def render_bulk_upload_tab(self):
             else:
                 st.info("No audit events recorded yet.")
     
-    def generate_network_report(self):
+def generate_network_report(self):
         """Generate network migration report"""
         st.success("✅ Network migration report feature available!")
         st.info("Generate comprehensive PDF reports with network analysis and recommendations.")
     
-    def generate_database_report(self):
+def generate_database_report(self):
         """Generate database migration report"""
         st.success("✅ Database migration report feature available!")
         st.info("Generate comprehensive PDF reports with database sizing and migration plans.")
     
-    def run(self):
+def run(self):
         """Main application entry point"""
         # Render unified header and navigation
         self.render_header()
