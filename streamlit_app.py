@@ -2798,39 +2798,39 @@ class EnterpriseMigrationPlatform:
             performance_gain_pct = ((optimal_efficiency - current_efficiency) / current_efficiency) * 100
             
         # Generate recommendations
-        if recommended_agents > current_agents:
-            change_type = "INCREASE"
-            reason = f"Scale up from {current_agents} to {recommended_agents} agents"
-            if data_size_tb > 20:
-                reason += f" to handle large dataset ({data_size_tb:.1f}TB) efficiently"
-            elif dx_bandwidth_mbps > 5000:
-                reason += f" to utilize high bandwidth ({dx_bandwidth_mbps} Mbps) effectively"
-            else:
-                reason += " to improve parallel processing and reduce transfer time"
+            if recommended_agents > current_agents:
+                change_type = "INCREASE"
+                reason = f"Scale up from {current_agents} to {recommended_agents} agents"
+                if data_size_tb > 20:
+                    reason += f" to handle large dataset ({data_size_tb:.1f}TB) efficiently"
+                elif dx_bandwidth_mbps > 5000:
+                    reason += f" to utilize high bandwidth ({dx_bandwidth_mbps} Mbps) effectively"
+                else:
+                    reason += " to improve parallel processing and reduce transfer time"
+                    
+            elif recommended_agents < current_agents:
+                change_type = "DECREASE"
+                reason = f"Scale down from {current_agents} to {recommended_agents} agents"
+                reason += " to reduce costs without significant performance impact"
                 
-        elif recommended_agents < current_agents:
-            change_type = "DECREASE"
-            reason = f"Scale down from {current_agents} to {recommended_agents} agents"
-            reason += " to reduce costs without significant performance impact"
+            else:
+                change_type = "OPTIMAL"
+                reason = f"Current {current_agents} agents is optimal for your workload"
             
-        else:
-            change_type = "OPTIMAL"
-            reason = f"Current {current_agents} agents is optimal for your workload"
-        
-        # Time impact analysis
-        if change_type != "OPTIMAL":
-            time_change_pct = -performance_gain_pct * 0.8  # Approximate time reduction
-            time_impact = f"{abs(time_change_pct):.1f}% {'faster' if time_change_pct < 0 else 'slower'}"
-        else:
-            time_impact = "No change"
-        
-        # Risk assessment
-        if change_type == "INCREASE" and cost_change_pct > 50:
-            risk_level = "Medium - Significant cost increase"
-        elif change_type == "DECREASE" and performance_gain_pct < -20:
-            risk_level = "Medium - Performance degradation"
-        else:
-            risk_level = "Low"
+            # Time impact analysis
+            if change_type != "OPTIMAL":
+                time_change_pct = -performance_gain_pct * 0.8  # Approximate time reduction
+                time_impact = f"{abs(time_change_pct):.1f}% {'faster' if time_change_pct < 0 else 'slower'}"
+            else:
+                time_impact = "No change"
+            
+            # Risk assessment
+            if change_type == "INCREASE" and cost_change_pct > 50:
+                risk_level = "Medium - Significant cost increase"
+            elif change_type == "DECREASE" and performance_gain_pct < -20:
+                risk_level = "Medium - Performance degradation"
+            else:
+                risk_level = "Low"
         
         # Scenarios analysis
         scenarios = []
