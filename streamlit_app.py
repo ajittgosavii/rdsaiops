@@ -4181,49 +4181,1243 @@ class EnterpriseMigrationPlatform:
         
         # Simplified database tab renderers
     def render_database_sizing_tab(self):
-            """Render database sizing analysis tab"""
-            if not st.session_state.current_database_analysis:
-                st.warning("⚠️ Please run analysis in Configuration tab first.")
-                return
+        """Render comprehensive database sizing analysis tab"""
+        if not st.session_state.current_database_analysis:
+            st.warning("⚠️ Please run analysis in Configuration tab first.")
+            return
+        
+        st.markdown('<div class="section-header">📊 AI-Powered Database Sizing Analysis</div>', unsafe_allow_html=True)
+        
+        analysis = st.session_state.current_database_analysis
+        config = analysis['config']
+        sizing = analysis['sizing']
+        
+        # Executive Summary
+        st.markdown('<div class="section-header">📋 Executive Summary</div>', unsafe_allow_html=True)
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Database Size", f"{config['database_size_gb']:,} GB")
+            st.metric("Workload Type", config['workload_type'])
+        
+        with col2:
+            st.metric("Recommended Writer", sizing['writer_instance']['instance_type'])
+            st.metric("CPU Utilization", f"{sizing['writer_instance']['cpu_utilization']:.1f}%")
+        
+        with col3:
+            st.metric("Memory Utilization", f"{sizing['writer_instance']['memory_utilization']:.1f}%")
+            st.metric("Read Replicas", len(sizing['reader_instances']))
+        
+        with col4:
+            monthly_cost = sizing['writer_instance']['specs']['cost_factor'] * 24 * 30
+            st.metric("Est. Monthly Cost", f"${monthly_cost:,.0f}")
+            st.metric("Environment", config['environment'])
+        
+        # AI Analysis Display
+        st.markdown(f"""
+        <div class="ai-insight">
+            <strong>🧠 AI Sizing Rationale:</strong> {sizing['sizing_rationale']}
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Writer Instance Details
+        st.markdown('<div class="section-header">🖥️ Writer Instance Configuration</div>', unsafe_allow_html=True)
+        
+        writer = sizing['writer_instance']
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown(f"""
+            <div class="recommendation-box">
+                <h4>📊 Recommended Writer Instance</h4>
+                <p><strong>Instance Type:</strong> {writer['instance_type']}</p>
+                <p><strong>vCPUs:</strong> {writer['specs']['vcpu']}</p>
+                <p><strong>Memory:</strong> {writer['specs']['memory']} GB</p>
+                <p><strong>Network:</strong> {writer['specs']['network']}</p>
+                <p><strong>Use Case:</strong> {writer['specs']['use_case']}</p>
+                <p><strong>Efficiency Score:</strong> {writer['efficiency_score']:.2f}</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            st.markdown(f"""
+            <div class="recommendation-box">
+                <h4>📈 Resource Utilization</h4>
+                <p><strong>CPU Utilization:</strong> {writer['cpu_utilization']:.1f}%</p>
+                <p><strong>Memory Utilization:</strong> {writer['memory_utilization']:.1f}%</p>
+                <p><strong>Peak Connections:</strong> {config['concurrent_connections']:,}</p>
+                <p><strong>Peak TPS:</strong> {config['transactions_per_second']:,}</p>
+                <p><strong>Read/Write Ratio:</strong> {config['read_query_percentage']}% reads</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Read Replicas Configuration
+        if sizing['reader_instances']:
+            st.markdown('<div class="section-header">📖 Read Replica Configuration</div>', unsafe_allow_html=True)
             
-            st.markdown('<div class="section-header">📊 AI-Powered Database Sizing Analysis</div>', unsafe_allow_html=True)
-            st.info("Database sizing analysis complete. View detailed results in the configuration.")
+            replica_data = []
+            for i, replica in enumerate(sizing['reader_instances']):
+                replica_data.append({
+                    "Replica": f"Read Replica {i+1}",
+                    "Instance Type": replica['instance_type'],
+                    "Role": replica['role'],
+                    "Cross-AZ": "Yes" if replica.get('cross_az', False) else "No",
+                    "vCPUs": replica['specs']['vcpu'],
+                    "Memory (GB)": replica['specs']['memory'],
+                    "Est. Cost/Month": f"${replica['specs']['cost_factor'] * 24 * 30:,.0f}"
+                })
+            
+            replica_df = pd.DataFrame(replica_data)
+            self.safe_dataframe_display(replica_df)
+        
+        # Storage Configuration
+        st.markdown('<div class="section-header">💾 Storage Configuration</div>', unsafe_allow_html=True)
+        
+        storage = sizing['storage_config']
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.markdown(f"""
+            <div class="metric-card">
+                <h4>📦 Storage Specifications</h4>
+                <p><strong>Storage Type:</strong> {storage['storage_type']}</p>
+                <p><strong>Allocated Storage:</strong> {storage['allocated_storage_gb']:,} GB</p>
+                <p><strong>Provisioned IOPS:</strong> {storage['provisioned_iops']:,}</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            st.markdown(f"""
+            <div class="metric-card">
+                <h4>🔒 Backup & Security</h4>
+                <p><strong>Backup Retention:</strong> {storage['backup_retention_days']} days</p>
+                <p><strong>Multi-AZ:</strong> {'Yes' if storage['multi_az'] else 'No'}</p>
+                <p><strong>Encryption:</strong> {'Yes' if storage['encryption_enabled'] else 'No'}</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col3:
+            st.markdown(f"""
+            <div class="metric-card">
+                <h4>📋 Maintenance</h4>
+                <p><strong>Snapshot Frequency:</strong> {storage['snapshot_frequency']}</p>
+                <p><strong>Availability:</strong> {sizing['environment_config']['availability']}</p>
+                <p><strong>Scaling Factor:</strong> {sizing['environment_config']['scaling_factor']}</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Growth Projections
+        st.markdown('<div class="section-header">📈 Growth Projections</div>', unsafe_allow_html=True)
+        
+        growth_data = []
+        for year_key, projection in sizing['growth_projections'].items():
+            year_num = year_key.split('_')[1]
+            growth_data.append({
+                "Year": f"Year {year_num}",
+                "Projected Storage (GB)": f"{projection['storage_gb']:,}",
+                "Growth Factor": f"{projection['growth_factor']:.2f}x",
+                "Compute Recommendation": projection['compute_recommendation'],
+                "Est. Cost Increase": projection['estimated_cost_increase']
+            })
+        
+        growth_df = pd.DataFrame(growth_data)
+        self.safe_dataframe_display(growth_df)
+        
+        # Sizing Comparison Chart
+        st.markdown('<div class="section-header">📊 Instance Comparison</div>', unsafe_allow_html=True)
+        
+        # Create comparison with current selection and alternatives
+        instance_options = ["db.m5.large", "db.m5.xlarge", "db.m5.2xlarge", "db.r5.large", "db.r5.xlarge"]
+        instance_costs = [4.2, 8.4, 16.8, 5.5, 11.0]  # Cost factors
+        
+        fig_comparison = go.Figure()
+        
+        colors = ['gold' if inst == writer['instance_type'] else 'lightblue' for inst in instance_options]
+        
+        fig_comparison.add_trace(go.Bar(
+            x=instance_options,
+            y=instance_costs,
+            marker_color=colors,
+            text=[f"${cost * 24 * 30:.0f}/mo" for cost in instance_costs],
+            textposition='auto'
+        ))
+        
+        fig_comparison.update_layout(
+            title="Instance Type Cost Comparison (Recommended in Gold)",
+            xaxis_title="Instance Type",
+            yaxis_title="Monthly Cost ($)",
+            height=400
+        )
+        st.plotly_chart(fig_comparison, use_container_width=True)
         
     def render_database_cost_tab(self):
-            """Render database cost analysis tab"""
-            if not st.session_state.current_database_analysis:
-                st.warning("⚠️ Please run analysis in Configuration tab first.")
-                return
-            
-            st.markdown('<div class="section-header">💰 Comprehensive Database Cost Analysis</div>', unsafe_allow_html=True)
-            st.info("Database cost analysis available. Configure AWS pricing for detailed costs.")
+        """Render comprehensive database cost analysis tab"""
+        if not st.session_state.current_database_analysis:
+            st.warning("⚠️ Please run analysis in Configuration tab first.")
+            return
+        
+        st.markdown('<div class="section-header">💰 Comprehensive Database Cost Analysis</div>', unsafe_allow_html=True)
+        
+        analysis = st.session_state.current_database_analysis
+        config = analysis['config']
+        sizing = analysis['sizing']
+        
+        # Calculate comprehensive costs
+        writer = sizing['writer_instance']
+        readers = sizing['reader_instances']
+        storage = sizing['storage_config']
+        
+        # Monthly costs calculation
+        writer_monthly_cost = writer['specs']['cost_factor'] * 24 * 30
+        
+        reader_monthly_cost = 0
+        for reader in readers:
+            reader_monthly_cost += reader['specs']['cost_factor'] * 24 * 30
+        
+        # Storage costs (simplified calculation)
+        storage_monthly_cost = storage['allocated_storage_gb'] * 0.10  # $0.10 per GB/month for gp3
+        
+        if storage['storage_type'] in ['io1', 'io2']:
+            storage_monthly_cost += storage['provisioned_iops'] * 0.065  # IOPS pricing
+        
+        # Backup costs
+        backup_storage_gb = storage['allocated_storage_gb'] * 1.2  # 20% overhead for backups
+        backup_monthly_cost = backup_storage_gb * 0.095  # Backup storage pricing
+        
+        # Data transfer costs (estimated)
+        data_transfer_monthly_cost = 100  # Estimated based on usage
+        
+        # Additional services
+        monitoring_cost = 30 if config.get('enhanced_monitoring', False) else 0
+        compliance_cost = len(config.get('compliance_frameworks', [])) * 200
+        
+        total_monthly_cost = (writer_monthly_cost + reader_monthly_cost + storage_monthly_cost + 
+                            backup_monthly_cost + data_transfer_monthly_cost + monitoring_cost + compliance_cost)
+        
+        # Cost Dashboard
+        st.markdown('<div class="section-header">📊 Cost Dashboard</div>', unsafe_allow_html=True)
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Monthly Total", f"${total_monthly_cost:,.0f}")
+            st.metric("Annual Total", f"${total_monthly_cost * 12:,.0f}")
+        
+        with col2:
+            st.metric("Compute Cost", f"${writer_monthly_cost + reader_monthly_cost:,.0f}")
+            st.metric("Storage Cost", f"${storage_monthly_cost:,.0f}")
+        
+        with col3:
+            cost_per_gb = total_monthly_cost / config['database_size_gb']
+            st.metric("Cost per GB", f"${cost_per_gb:.2f}")
+            st.metric("Cost per User", f"${total_monthly_cost / max(config['concurrent_connections'], 1):.2f}")
+        
+        with col4:
+            # Compare with on-premises (estimated)
+            on_prem_monthly = config['database_size_gb'] * 0.50  # $0.50 per GB on-premises
+            savings = max(0, on_prem_monthly - total_monthly_cost)
+            st.metric("vs On-Premises", f"${savings:,.0f} saved/mo" if savings > 0 else f"${abs(savings):,.0f} more/mo")
+            roi = (savings * 12) / (total_monthly_cost * 12) * 100 if total_monthly_cost > 0 else 0
+            st.metric("Annual ROI", f"{roi:.1f}%")
+        
+        # Cost Breakdown Chart
+        st.markdown('<div class="section-header">📊 Cost Breakdown</div>', unsafe_allow_html=True)
+        
+        cost_categories = {
+            'Writer Instance': writer_monthly_cost,
+            'Read Replicas': reader_monthly_cost,
+            'Storage': storage_monthly_cost,
+            'Backups': backup_monthly_cost,
+            'Data Transfer': data_transfer_monthly_cost,
+            'Monitoring': monitoring_cost,
+            'Compliance': compliance_cost
+        }
+        
+        # Filter out zero costs
+        cost_categories = {k: v for k, v in cost_categories.items() if v > 0}
+        
+        fig_pie = go.Figure(data=[go.Pie(
+            labels=list(cost_categories.keys()),
+            values=list(cost_categories.values()),
+            hole=.3
+        )])
+        
+        fig_pie.update_layout(title="Monthly Cost Distribution", height=500)
+        st.plotly_chart(fig_pie, use_container_width=True)
+        
+        # Detailed Cost Table
+        st.markdown('<div class="section-header">📋 Detailed Cost Breakdown</div>', unsafe_allow_html=True)
+        
+        cost_details = []
+        
+        cost_details.append({
+            "Component": "Writer Instance",
+            "Type": writer['instance_type'],
+            "Specification": f"{writer['specs']['vcpu']} vCPU, {writer['specs']['memory']} GB RAM",
+            "Monthly Cost": f"${writer_monthly_cost:,.0f}",
+            "Annual Cost": f"${writer_monthly_cost * 12:,.0f}"
+        })
+        
+        for i, reader in enumerate(readers):
+            cost_details.append({
+                "Component": f"Read Replica {i+1}",
+                "Type": reader['instance_type'],
+                "Specification": f"{reader['specs']['vcpu']} vCPU, {reader['specs']['memory']} GB RAM",
+                "Monthly Cost": f"${reader['specs']['cost_factor'] * 24 * 30:,.0f}",
+                "Annual Cost": f"${reader['specs']['cost_factor'] * 24 * 30 * 12:,.0f}"
+            })
+        
+        cost_details.append({
+            "Component": "Storage",
+            "Type": storage['storage_type'],
+            "Specification": f"{storage['allocated_storage_gb']:,} GB, {storage['provisioned_iops']:,} IOPS",
+            "Monthly Cost": f"${storage_monthly_cost:,.0f}",
+            "Annual Cost": f"${storage_monthly_cost * 12:,.0f}"
+        })
+        
+        cost_details.append({
+            "Component": "Backup Storage",
+            "Type": "Automated Backups",
+            "Specification": f"{backup_storage_gb:,.0f} GB, {storage['backup_retention_days']} day retention",
+            "Monthly Cost": f"${backup_monthly_cost:,.0f}",
+            "Annual Cost": f"${backup_monthly_cost * 12:,.0f}"
+        })
+        
+        if monitoring_cost > 0:
+            cost_details.append({
+                "Component": "Enhanced Monitoring",
+                "Type": "CloudWatch Enhanced",
+                "Specification": "Detailed metrics and performance insights",
+                "Monthly Cost": f"${monitoring_cost:,.0f}",
+                "Annual Cost": f"${monitoring_cost * 12:,.0f}"
+            })
+        
+        if compliance_cost > 0:
+            cost_details.append({
+                "Component": "Compliance Tools",
+                "Type": "Automated Compliance",
+                "Specification": f"{len(config.get('compliance_frameworks', []))} frameworks",
+                "Monthly Cost": f"${compliance_cost:,.0f}",
+                "Annual Cost": f"${compliance_cost * 12:,.0f}"
+            })
+        
+        cost_df = pd.DataFrame(cost_details)
+        self.safe_dataframe_display(cost_df)
+        
+        # Cost Optimization Recommendations
+        st.markdown('<div class="section-header">💡 Cost Optimization Recommendations</div>', unsafe_allow_html=True)
+        
+        optimizations = []
+        
+        if writer['cpu_utilization'] < 50:
+            smaller_instance = "db.m5.large" if "xlarge" in writer['instance_type'] else writer['instance_type']
+            optimizations.append(f"💰 Consider downsizing writer instance to {smaller_instance} (CPU utilization: {writer['cpu_utilization']:.1f}%)")
+        
+        if len(readers) > 2 and config['read_query_percentage'] < 70:
+            optimizations.append(f"💰 Consider reducing read replicas from {len(readers)} to 2 (read queries: {config['read_query_percentage']}%)")
+        
+        if storage['storage_type'] == 'io2' and storage['provisioned_iops'] > 16000:
+            optimizations.append(f"💰 Consider using gp3 storage instead of io2 for cost savings")
+        
+        if not config.get('auto_scaling_enabled', False):
+            optimizations.append(f"📈 Enable auto-scaling to optimize costs during low-usage periods")
+        
+        if storage['backup_retention_days'] > 30 and config['environment'] != 'Production':
+            optimizations.append(f"💰 Reduce backup retention to 7 days for non-production environments")
+        
+        optimizations.append(f"💰 Consider Reserved Instances for 30-60% cost savings on predictable workloads")
+        optimizations.append(f"📊 Enable cost monitoring and budget alerts")
+        
+        for opt in optimizations:
+            st.write(f"• {opt}")
+        
+        # Cost Projection Chart
+        st.markdown('<div class="section-header">📈 Cost Growth Projections</div>', unsafe_allow_html=True)
+        
+        # Create cost projection over 3 years
+        months = list(range(1, 37))  # 3 years
+        growth_rate = config.get('annual_growth_rate', 0.2)
+        monthly_growth_rate = growth_rate / 12
+        
+        projected_costs = []
+        for month in months:
+            projected_cost = total_monthly_cost * (1 + monthly_growth_rate) ** month
+            projected_costs.append(projected_cost)
+        
+        fig_projection = go.Figure()
+        
+        fig_projection.add_trace(go.Scatter(
+            x=months,
+            y=projected_costs,
+            mode='lines+markers',
+            name='Projected Costs',
+            line=dict(color='#e74c3c', width=2)
+        ))
+        
+        fig_projection.update_layout(
+            title="3-Year Cost Projection",
+            xaxis_title="Month",
+            yaxis_title="Monthly Cost ($)",
+            height=400
+        )
+        st.plotly_chart(fig_projection, use_container_width=True)
         
     def render_database_risk_tab(self):
-            """Render database risk assessment tab"""
-            if not st.session_state.current_database_analysis:
-                st.warning("⚠️ Please run analysis in Configuration tab first.")
-                return
+        """Render comprehensive database risk assessment tab"""
+        if not st.session_state.current_database_analysis:
+            st.warning("⚠️ Please run analysis in Configuration tab first.")
+            return
+        
+        st.markdown('<div class="section-header">⚠️ Comprehensive Risk Assessment</div>', unsafe_allow_html=True)
+        
+        analysis = st.session_state.current_database_analysis
+        config = analysis['config']
+        sizing = analysis['sizing']
+        
+        # Calculate overall risk score
+        risk_factors = {}
+        total_risk_score = 0
+        
+        # Technical risks
+        if config['database_size_gb'] > 10000:
+            risk_factors['Large Database Size'] = {'score': 15, 'level': 'Medium', 'impact': 'Migration complexity and time'}
+            total_risk_score += 15
+        
+        if config['schema_complexity'] == 'Complex':
+            risk_factors['Schema Complexity'] = {'score': 20, 'level': 'High', 'impact': 'Conversion and testing challenges'}
+            total_risk_score += 20
+        
+        if config['migration_type'] == 'Heterogeneous':
+            risk_factors['Heterogeneous Migration'] = {'score': 25, 'level': 'High', 'impact': 'Data type conversions and compatibility'}
+            total_risk_score += 25
+        
+        if config['downtime_tolerance'] == 'Zero':
+            risk_factors['Zero Downtime Requirement'] = {'score': 30, 'level': 'Critical', 'impact': 'Complex migration strategy required'}
+            total_risk_score += 30
+        
+        # Business risks
+        if config['business_criticality'] == 'Critical':
+            risk_factors['Business Criticality'] = {'score': 20, 'level': 'High', 'impact': 'High business impact of failures'}
+            total_risk_score += 20
+        
+        if config['team_experience'] == 'Novice':
+            risk_factors['Team Experience'] = {'score': 25, 'level': 'High', 'impact': 'Potential execution challenges'}
+            total_risk_score += 25
+        
+        if config['rollback_plan'] == 'None':
+            risk_factors['No Rollback Plan'] = {'score': 35, 'level': 'Critical', 'impact': 'No recovery option if migration fails'}
+            total_risk_score += 35
+        
+        # Compliance risks
+        if config['compliance_frameworks'] and not config.get('encryption_required', False):
+            risk_factors['Encryption Not Enabled'] = {'score': 20, 'level': 'High', 'impact': 'Compliance violations'}
+            total_risk_score += 20
+        
+        # Performance risks
+        writer = sizing['writer_instance']
+        if writer['cpu_utilization'] > 80:
+            risk_factors['High CPU Utilization'] = {'score': 15, 'level': 'Medium', 'impact': 'Performance bottlenecks'}
+            total_risk_score += 15
+        
+        if writer['memory_utilization'] > 85:
+            risk_factors['High Memory Utilization'] = {'score': 15, 'level': 'Medium', 'impact': 'Memory pressure and swapping'}
+            total_risk_score += 15
+        
+        # Determine overall risk level
+        if total_risk_score >= 80:
+            overall_risk = 'Critical'
+            risk_color = '#dc3545'
+        elif total_risk_score >= 60:
+            overall_risk = 'High'
+            risk_color = '#fd7e14'
+        elif total_risk_score >= 40:
+            overall_risk = 'Medium'
+            risk_color = '#ffc107'
+        else:
+            overall_risk = 'Low'
+            risk_color = '#28a745'
+        
+        # Risk Dashboard
+        st.markdown('<div class="section-header">📊 Risk Dashboard</div>', unsafe_allow_html=True)
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Overall Risk Level", overall_risk)
+            st.metric("Risk Score", f"{total_risk_score}/200")
+        
+        with col2:
+            technical_risks = sum(1 for rf in risk_factors.values() if 'Migration' in str(rf) or 'Database' in str(rf) or 'Schema' in str(rf))
+            st.metric("Technical Risks", str(technical_risks))
+            business_risks = sum(1 for rf in risk_factors.values() if 'Business' in str(rf) or 'Team' in str(rf) or 'Rollback' in str(rf))
+            st.metric("Business Risks", str(business_risks))
+        
+        with col3:
+            critical_risks = sum(1 for rf in risk_factors.values() if rf['level'] == 'Critical')
+            st.metric("Critical Risks", str(critical_risks))
+            high_risks = sum(1 for rf in risk_factors.values() if rf['level'] == 'High')
+            st.metric("High Risks", str(high_risks))
+        
+        with col4:
+            success_probability = max(20, 100 - total_risk_score)
+            st.metric("Success Probability", f"{success_probability}%")
+            mitigation_required = "Yes" if total_risk_score > 40 else "Optional"
+            st.metric("Mitigation Required", mitigation_required)
+        
+        # Overall Risk Status
+        st.markdown(f"""
+        <div class="risk-{overall_risk.lower()}" style="background: {risk_color}20; border-left: 4px solid {risk_color}; padding: 15px; border-radius: 8px; margin: 15px 0;">
+            <h4>🎯 Overall Risk Assessment: {overall_risk} Risk</h4>
+            <p><strong>Risk Score:</strong> {total_risk_score}/200</p>
+            <p><strong>Success Probability:</strong> {success_probability}%</p>
+            <p><strong>Recommendation:</strong> {'Immediate mitigation required' if total_risk_score > 80 else 'Proceed with risk mitigation plan' if total_risk_score > 40 else 'Acceptable risk level'}</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Detailed Risk Analysis
+        st.markdown('<div class="section-header">📋 Detailed Risk Analysis</div>', unsafe_allow_html=True)
+        
+        if risk_factors:
+            risk_data = []
+            for risk_name, risk_info in risk_factors.items():
+                risk_data.append({
+                    "Risk Factor": risk_name,
+                    "Risk Level": risk_info['level'],
+                    "Risk Score": f"{risk_info['score']}/50",
+                    "Potential Impact": risk_info['impact'],
+                    "Priority": "🔴 Critical" if risk_info['level'] == 'Critical' else 
+                            "🟠 High" if risk_info['level'] == 'High' else 
+                            "🟡 Medium" if risk_info['level'] == 'Medium' else "🟢 Low"
+                })
             
-            st.markdown('<div class="section-header">⚠️ Comprehensive Risk Assessment</div>', unsafe_allow_html=True)
-            st.info("Database risk assessment available. Review configuration for risk factors.")
+            risk_df = pd.DataFrame(risk_data)
+            self.safe_dataframe_display(risk_df)
+        else:
+            st.success("✅ No significant risks identified!")
+        
+        # Risk Mitigation Strategies
+        st.markdown('<div class="section-header">🛡️ Risk Mitigation Strategies</div>', unsafe_allow_html=True)
+        
+        mitigation_strategies = []
+        
+        if 'Large Database Size' in risk_factors:
+            mitigation_strategies.append({
+                "Risk": "Large Database Size",
+                "Strategy": "Implement phased migration approach",
+                "Action Items": [
+                    "Break migration into smaller chunks",
+                    "Use parallel data loading",
+                    "Implement incremental migration",
+                    "Set up monitoring for each phase"
+                ],
+                "Timeline": "2-4 weeks additional preparation"
+            })
+        
+        if 'Schema Complexity' in risk_factors:
+            mitigation_strategies.append({
+                "Risk": "Schema Complexity",
+                "Strategy": "Comprehensive schema analysis and testing",
+                "Action Items": [
+                    "Perform detailed schema mapping",
+                    "Create automated conversion scripts",
+                    "Implement comprehensive testing",
+                    "Engage database experts"
+                ],
+                "Timeline": "3-6 weeks additional preparation"
+            })
+        
+        if 'Heterogeneous Migration' in risk_factors:
+            mitigation_strategies.append({
+                "Risk": "Heterogeneous Migration",
+                "Strategy": "Use AWS Database Migration Service (DMS)",
+                "Action Items": [
+                    "Set up DMS replication instance",
+                    "Create and test conversion rules",
+                    "Perform data type mapping",
+                    "Test application compatibility"
+                ],
+                "Timeline": "4-8 weeks for full testing"
+            })
+        
+        if 'Zero Downtime Requirement' in risk_factors:
+            mitigation_strategies.append({
+                "Risk": "Zero Downtime Requirement",
+                "Strategy": "Implement continuous data replication",
+                "Action Items": [
+                    "Set up real-time replication",
+                    "Implement application-level failover",
+                    "Test cutover procedures",
+                    "Create rollback mechanisms"
+                ],
+                "Timeline": "6-10 weeks preparation"
+            })
+        
+        if 'Team Experience' in risk_factors:
+            mitigation_strategies.append({
+                "Risk": "Limited Team Experience",
+                "Strategy": "Training and expert consultation",
+                "Action Items": [
+                    "Provide AWS certification training",
+                    "Engage migration consultants",
+                    "Implement mentorship program",
+                    "Create detailed runbooks"
+                ],
+                "Timeline": "2-4 weeks training period"
+            })
+        
+        if 'No Rollback Plan' in risk_factors:
+            mitigation_strategies.append({
+                "Risk": "No Rollback Plan",
+                "Strategy": "Develop comprehensive rollback procedures",
+                "Action Items": [
+                    "Create automated rollback scripts",
+                    "Maintain standby systems",
+                    "Test rollback procedures",
+                    "Document recovery processes"
+                ],
+                "Timeline": "1-2 weeks preparation"
+            })
+        
+        # Display mitigation strategies
+        for strategy in mitigation_strategies:
+            with st.expander(f"🛡️ Mitigation: {strategy['Risk']}"):
+                st.markdown(f"**Strategy:** {strategy['Strategy']}")
+                st.markdown(f"**Timeline:** {strategy['Timeline']}")
+                st.markdown("**Action Items:**")
+                for item in strategy['Action Items']:
+                    st.write(f"• {item}")
+        
+        # Risk Heat Map
+        st.markdown('<div class="section-header">🔥 Risk Heat Map</div>', unsafe_allow_html=True)
+        
+        if risk_factors:
+            risk_names = list(risk_factors.keys())
+            risk_scores = [rf['score'] for rf in risk_factors.values()]
+            risk_levels = [rf['level'] for rf in risk_factors.values()]
+            
+            color_map = {'Critical': '#dc3545', 'High': '#fd7e14', 'Medium': '#ffc107', 'Low': '#28a745'}
+            colors = [color_map.get(level, '#6c757d') for level in risk_levels]
+            
+            fig_risk = go.Figure()
+            
+            fig_risk.add_trace(go.Bar(
+                y=risk_names,
+                x=risk_scores,
+                orientation='h',
+                marker_color=colors,
+                text=[f"{score}/50" for score in risk_scores],
+                textposition='auto'
+            ))
+            
+            fig_risk.update_layout(
+                title="Risk Factor Analysis",
+                xaxis_title="Risk Score",
+                yaxis_title="Risk Factors",
+                height=max(400, len(risk_factors) * 50)
+            )
+            st.plotly_chart(fig_risk, use_container_width=True)
         
     def render_database_plan_tab(self):
-            """Render database migration plan tab"""
-            if not st.session_state.current_database_analysis:
-                st.warning("⚠️ Please run analysis in Configuration tab first.")
-                return
-            
-            st.markdown('<div class="section-header">📋 Comprehensive Migration Plan</div>', unsafe_allow_html=True)
-            st.info("Database migration plan available. See timeline and phases.")
+        """Render comprehensive database migration plan tab"""
+        if not st.session_state.current_database_analysis:
+            st.warning("⚠️ Please run analysis in Configuration tab first.")
+            return
         
-    def render_database_dashboard_tab(self):
-            """Render database executive dashboard"""
-            if not st.session_state.current_database_analysis:
-                st.warning("⚠️ Please run analysis in Configuration tab first.")
-                return
-            
-            st.markdown('<div class="section-header">📈 Database Migration Executive Dashboard</div>', unsafe_allow_html=True)
-            st.success("✅ Database analysis dashboard ready. Full implementation available.")
+        st.markdown('<div class="section-header">📋 Comprehensive Migration Plan</div>', unsafe_allow_html=True)
+        
+        analysis = st.session_state.current_database_analysis
+        config = analysis['config']
+        sizing = analysis['sizing']
+        
+        # Calculate timeline based on complexity and size
+        base_timeline_weeks = 8  # Base timeline
+        
+        # Adjust timeline based on factors
+        if config['database_size_gb'] > 1000:
+            base_timeline_weeks += 2
+        if config['database_size_gb'] > 10000:
+            base_timeline_weeks += 4
+        
+        if config['schema_complexity'] == 'Complex':
+            base_timeline_weeks += 3
+        elif config['schema_complexity'] == 'Moderate':
+            base_timeline_weeks += 1
+        
+        if config['migration_type'] == 'Heterogeneous':
+            base_timeline_weeks += 4
+        
+        if config['downtime_tolerance'] == 'Zero':
+            base_timeline_weeks += 3
+        
+        if config['team_experience'] == 'Novice':
+            base_timeline_weeks += 2
+        
+        if len(config.get('compliance_frameworks', [])) > 2:
+            base_timeline_weeks += 2
+        
+        # Migration phases
+        phases = [
+            {
+                "phase": "Phase 1: Planning & Assessment",
+                "duration_weeks": 2,
+                "tasks": [
+                    "Complete detailed database assessment",
+                    "Finalize target architecture design",
+                    "Create detailed migration plan",
+                    "Set up project team and governance",
+                    "Establish communication protocols",
+                    "Define success criteria and KPIs"
+                ],
+                "deliverables": [
+                    "Migration Strategy Document",
+                    "Technical Architecture Design",
+                    "Project Charter",
+                    "Risk Assessment Report"
+                ],
+                "dependencies": "Business approval and team allocation"
+            },
+            {
+                "phase": "Phase 2: Environment Setup",
+                "duration_weeks": 2,
+                "tasks": [
+                    "Set up AWS target environment",
+                    "Configure RDS/Aurora instances",
+                    "Set up network connectivity",
+                    "Configure security groups and IAM",
+                    "Set up monitoring and alerting",
+                    "Install and configure migration tools"
+                ],
+                "deliverables": [
+                    "Target AWS Environment",
+                    "Network Configuration",
+                    "Security Configuration",
+                    "Monitoring Setup"
+                ],
+                "dependencies": "AWS account setup and network planning"
+            },
+            {
+                "phase": "Phase 3: Schema Migration & Testing",
+                "duration_weeks": 3,
+                "tasks": [
+                    "Export and convert database schema",
+                    "Create data type mapping rules",
+                    "Set up Database Migration Service",
+                    "Perform initial schema validation",
+                    "Execute test data migration",
+                    "Validate data integrity and performance"
+                ],
+                "deliverables": [
+                    "Converted Database Schema",
+                    "DMS Configuration",
+                    "Test Migration Results",
+                    "Data Validation Reports"
+                ],
+                "dependencies": "Target environment ready"
+            },
+            {
+                "phase": "Phase 4: Application Testing",
+                "duration_weeks": 3,
+                "tasks": [
+                    "Update application connection strings",
+                    "Perform application compatibility testing",
+                    "Execute performance testing",
+                    "Test backup and recovery procedures",
+                    "Validate monitoring and alerting",
+                    "User acceptance testing"
+                ],
+                "deliverables": [
+                    "Application Test Results",
+                    "Performance Test Reports",
+                    "Backup/Recovery Validation",
+                    "UAT Sign-off"
+                ],
+                "dependencies": "Schema migration completed"
+            },
+            {
+                "phase": "Phase 5: Production Migration",
+                "duration_weeks": 1,
+                "tasks": [
+                    "Execute production data migration",
+                    "Perform final data synchronization",
+                    "Switch application traffic",
+                    "Validate production performance",
+                    "Monitor for issues",
+                    "Execute rollback if needed"
+                ],
+                "deliverables": [
+                    "Production Database",
+                    "Migration Execution Report",
+                    "Performance Validation",
+                    "Go-Live Confirmation"
+                ],
+                "dependencies": "All testing completed and approved"
+            },
+            {
+                "phase": "Phase 6: Post-Migration Optimization",
+                "duration_weeks": 2,
+                "tasks": [
+                    "Performance tuning and optimization",
+                    "Cost optimization review",
+                    "Security configuration review",
+                    "Documentation updates",
+                    "Team training on new environment",
+                    "Project retrospective"
+                ],
+                "deliverables": [
+                    "Optimized Production Environment",
+                    "Cost Optimization Report",
+                    "Updated Documentation",
+                    "Training Materials",
+                    "Project Closure Report"
+                ],
+                "dependencies": "Successful production migration"
+            }
+        ]
+        
+        # Executive Summary
+        st.markdown('<div class="section-header">📊 Migration Timeline Overview</div>', unsafe_allow_html=True)
+        
+        total_weeks = sum(phase['duration_weeks'] for phase in phases)
+        estimated_completion = datetime.now() + timedelta(weeks=total_weeks)
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Total Duration", f"{total_weeks} weeks")
+            st.metric("Estimated Completion", estimated_completion.strftime("%B %Y"))
+        
+        with col2:
+            st.metric("Migration Phases", str(len(phases)))
+            st.metric("Risk Level", "Medium")  # This could be calculated from risk assessment
+        
+        with col3:
+            st.metric("Team Size Required", "6-8 people")
+            st.metric("Downtime Window", config['downtime_tolerance'])
+        
+        with col4:
+            effort_hours = total_weeks * 40 * 6  # 6 people * 40 hours/week
+            st.metric("Total Effort", f"{effort_hours:,} hours")
+            st.metric("Migration Method", config['migration_method'])
+        
+        # Gantt Chart
+        st.markdown('<div class="section-header">📅 Migration Timeline (Gantt Chart)</div>', unsafe_allow_html=True)
+        
+        # Create Gantt chart data
+        start_date = datetime.now()
+        gantt_data = []
+        current_date = start_date
+        
+        for phase in phases:
+            end_date = current_date + timedelta(weeks=phase['duration_weeks'])
+            gantt_data.append({
+                'Phase': phase['phase'],
+                'Start': current_date,
+                'End': end_date,
+                'Duration': f"{phase['duration_weeks']} weeks"
+            })
+            current_date = end_date
+        
+        # Create Gantt chart
+        fig_gantt = go.Figure()
+        
+        for i, phase_data in enumerate(gantt_data):
+            fig_gantt.add_trace(go.Scatter(
+                x=[phase_data['Start'], phase_data['End']],
+                y=[i, i],
+                mode='lines',
+                line=dict(width=20, color=f'rgb({50 + i*30}, {100 + i*20}, {200 - i*20})'),
+                name=phase_data['Phase'],
+                hovertemplate=f"<b>{phase_data['Phase']}</b><br>" +
+                            f"Duration: {phase_data['Duration']}<br>" +
+                            f"Start: {phase_data['Start'].strftime('%Y-%m-%d')}<br>" +
+                            f"End: {phase_data['End'].strftime('%Y-%m-%d')}<extra></extra>"
+            ))
+        
+        fig_gantt.update_layout(
+            title="Migration Timeline - Gantt Chart",
+            xaxis_title="Date",
+            yaxis_title="Migration Phases",
+            yaxis=dict(
+                tickmode='array',
+                tickvals=list(range(len(gantt_data))),
+                ticktext=[phase['phase'].replace('Phase ', 'P') for phase in phases]
+            ),
+            height=400,
+            showlegend=False
+        )
+        st.plotly_chart(fig_gantt, use_container_width=True)
+        
+        # Detailed Phase Breakdown
+        st.markdown('<div class="section-header">📋 Detailed Phase Breakdown</div>', unsafe_allow_html=True)
+        
+        for i, phase in enumerate(phases):
+            with st.expander(f"{phase['phase']} ({phase['duration_weeks']} weeks)"):
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown("**📋 Key Tasks:**")
+                    for task in phase['tasks']:
+                        st.write(f"• {task}")
+                    
+                    st.markdown(f"**🔗 Dependencies:** {phase['dependencies']}")
+                
+                with col2:
+                    st.markdown("**📦 Deliverables:**")
+                    for deliverable in phase['deliverables']:
+                        st.write(f"• {deliverable}")
+        
+        # Resource Allocation
+        st.markdown('<div class="section-header">👥 Resource Allocation</div>', unsafe_allow_html=True)
+        
+        resources = [
+            {"Role": "Project Manager", "Allocation": "100%", "Duration": f"{total_weeks} weeks", "Responsibilities": "Overall project coordination and management"},
+            {"Role": "Database Architect", "Allocation": "80%", "Duration": f"{total_weeks} weeks", "Responsibilities": "Schema design and performance optimization"},
+            {"Role": "Cloud Engineer", "Allocation": "60%", "Duration": f"{total_weeks-2} weeks", "Responsibilities": "AWS infrastructure setup and configuration"},
+            {"Role": "DBA", "Allocation": "100%", "Duration": f"{total_weeks} weeks", "Responsibilities": "Database migration execution and validation"},
+            {"Role": "Application Developer", "Allocation": "40%", "Duration": f"{phases[3]['duration_weeks'] + phases[4]['duration_weeks']} weeks", "Responsibilities": "Application testing and cutover"},
+            {"Role": "QA Engineer", "Allocation": "60%", "Duration": f"{phases[2]['duration_weeks'] + phases[3]['duration_weeks']} weeks", "Responsibilities": "Testing and validation"},
+            {"Role": "Security Engineer", "Allocation": "30%", "Duration": f"{phases[1]['duration_weeks'] + phases[2]['duration_weeks']} weeks", "Responsibilities": "Security configuration and compliance"}
+        ]
+        
+        resource_df = pd.DataFrame(resources)
+        self.safe_dataframe_display(resource_df)
+        
+        # Critical Success Factors
+        st.markdown('<div class="section-header">🎯 Critical Success Factors</div>', unsafe_allow_html=True)
+        
+        success_factors = [
+            "🎯 **Executive Sponsorship**: Strong leadership support and clear decision-making authority",
+            "👥 **Skilled Team**: Experienced team members with AWS and database migration expertise",
+            "📋 **Detailed Planning**: Comprehensive migration plan with clear milestones and dependencies",
+            "🧪 **Thorough Testing**: Extensive testing at each phase to identify and resolve issues early",
+            "📊 **Continuous Monitoring**: Real-time monitoring during migration to detect and address problems",
+            "🔄 **Rollback Plan**: Well-tested rollback procedures in case of migration failure",
+            "💬 **Clear Communication**: Regular updates to stakeholders and transparent issue reporting",
+            "🎓 **Training**: Adequate training for operations team on new AWS environment"
+        ]
+        
+        for factor in success_factors:
+            st.write(factor)
+        
+        # Risk Mitigation in Timeline
+        st.markdown('<div class="section-header">⚠️ Timeline Risk Factors</div>', unsafe_allow_html=True)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("**⚠️ Potential Delays:**")
+            st.write("• Complex schema conversion issues (+2-4 weeks)")
+            st.write("• Application compatibility problems (+1-3 weeks)")
+            st.write("• Performance optimization requirements (+1-2 weeks)")
+            st.write("• Compliance/security review delays (+1-2 weeks)")
+            st.write("• Unexpected data quality issues (+1-3 weeks)")
+        
+        with col2:
+            st.markdown("**⚡ Acceleration Opportunities:**")
+            st.write("• Parallel execution of independent tasks (-1-2 weeks)")
+            st.write("• Automated testing and validation (-1 week)")
+            st.write("• Pre-migration schema optimization (-1 week)")
+            st.write("• Dedicated migration team (-1-2 weeks)")
+            st.write("• AWS Professional Services engagement (-2-3 weeks)")
+        
+def render_database_dashboard_tab(self):
+    """Render comprehensive database migration executive dashboard"""
+    if not st.session_state.current_database_analysis:
+        st.warning("⚠️ Please run analysis in Configuration tab first.")
+        return
+    
+    st.markdown('<div class="section-header">📈 Database Migration Executive Dashboard</div>', unsafe_allow_html=True)
+    
+    analysis = st.session_state.current_database_analysis
+    config = analysis['config']
+    sizing = analysis['sizing']
+    
+    # Executive Summary Section
+    st.markdown('<div class="section-header">📊 Executive Summary</div>', unsafe_allow_html=True)
+    
+    # Calculate key metrics
+    writer = sizing['writer_instance']
+    readers = sizing['reader_instances']
+    storage = sizing['storage_config']
+    
+    # Cost calculations
+    writer_monthly_cost = writer['specs']['cost_factor'] * 24 * 30
+    reader_monthly_cost = sum(reader['specs']['cost_factor'] * 24 * 30 for reader in readers)
+    storage_monthly_cost = storage['allocated_storage_gb'] * 0.10
+    total_monthly_cost = writer_monthly_cost + reader_monthly_cost + storage_monthly_cost + 200  # Additional services
+    
+    # Timeline estimation
+    base_weeks = 8
+    if config['database_size_gb'] > 1000: base_weeks += 2
+    if config['schema_complexity'] == 'Complex': base_weeks += 3
+    if config['migration_type'] == 'Heterogeneous': base_weeks += 4
+    
+    # Risk assessment
+    risk_score = 0
+    if config['database_size_gb'] > 10000: risk_score += 15
+    if config['schema_complexity'] == 'Complex': risk_score += 20
+    if config['migration_type'] == 'Heterogeneous': risk_score += 25
+    if config['downtime_tolerance'] == 'Zero': risk_score += 30
+    if config['team_experience'] == 'Novice': risk_score += 25
+    
+    risk_level = 'Critical' if risk_score >= 80 else 'High' if risk_score >= 60 else 'Medium' if risk_score >= 40 else 'Low'
+    
+    # Top-level metrics
+    col1, col2, col3, col4, col5 = st.columns(5)
+    
+    with col1:
+        st.metric("Monthly Cost", f"${total_monthly_cost:,.0f}")
+        st.metric("Annual Cost", f"${total_monthly_cost * 12:,.0f}")
+    
+    with col2:
+        st.metric("Timeline", f"{base_weeks} weeks")
+        completion_date = datetime.now() + timedelta(weeks=base_weeks)
+        st.metric("Est. Completion", completion_date.strftime("%b %Y"))
+    
+    with col3:
+        st.metric("Risk Level", risk_level)
+        success_rate = max(20, 100 - risk_score)
+        st.metric("Success Rate", f"{success_rate}%")
+    
+    with col4:
+        st.metric("Database Size", f"{config['database_size_gb']:,} GB")
+        st.metric("Target Instance", writer['instance_type'])
+    
+    with col5:
+        roi = ((config['database_size_gb'] * 0.50 - total_monthly_cost) * 12) / (total_monthly_cost * 12) * 100
+        st.metric("Annual ROI", f"{max(0, roi):.1f}%")
+        st.metric("Migration Type", config['migration_type'])
+    
+    # Status Indicators
+    st.markdown('<div class="section-header">🚦 Project Status</div>', unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        # Budget status
+        if total_monthly_cost < 5000:
+            budget_status = "🟢 Within Budget"
+        elif total_monthly_cost < 10000:
+            budget_status = "🟡 Monitor Budget"
+        else:
+            budget_status = "🔴 Over Budget"
+        
+        st.markdown(f"""
+        <div class="metric-card">
+            <h4>💰 Budget Status</h4>
+            <p><strong>Status:</strong> {budget_status}</p>
+            <p><strong>Monthly:</strong> ${total_monthly_cost:,.0f}</p>
+            <p><strong>Annual:</strong> ${total_monthly_cost * 12:,.0f}</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        # Timeline status
+        if base_weeks <= 12:
+            timeline_status = "🟢 On Track"
+        elif base_weeks <= 16:
+            timeline_status = "🟡 Delayed"
+        else:
+            timeline_status = "🔴 Critical Delay"
+        
+        st.markdown(f"""
+        <div class="metric-card">
+            <h4>⏰ Timeline Status</h4>
+            <p><strong>Status:</strong> {timeline_status}</p>
+            <p><strong>Duration:</strong> {base_weeks} weeks</p>
+            <p><strong>Completion:</strong> {completion_date.strftime('%B %Y')}</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        # Risk status
+        risk_colors = {'Low': '🟢', 'Medium': '🟡', 'High': '🟠', 'Critical': '🔴'}
+        risk_status = f"{risk_colors.get(risk_level, '⚪')} {risk_level} Risk"
+        
+        st.markdown(f"""
+        <div class="metric-card">
+            <h4>⚠️ Risk Status</h4>
+            <p><strong>Status:</strong> {risk_status}</p>
+            <p><strong>Score:</strong> {risk_score}/200</p>
+            <p><strong>Success Rate:</strong> {success_rate}%</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Key Recommendations
+    st.markdown('<div class="section-header">🎯 Key Recommendations</div>', unsafe_allow_html=True)
+    
+    recommendations = []
+    
+    if writer['cpu_utilization'] > 80:
+        recommendations.append("⚠️ Consider upgrading to a larger instance type to avoid CPU bottlenecks")
+    
+    if len(readers) == 0 and config['read_query_percentage'] > 60:
+        recommendations.append("📖 Add read replicas to distribute read workload and improve performance")
+    
+    if config['migration_type'] == 'Heterogeneous':
+        recommendations.append("🔄 Plan for extensive testing due to heterogeneous migration complexity")
+    
+    if config['downtime_tolerance'] == 'Zero':
+        recommendations.append("⏰ Implement continuous replication strategy for zero-downtime migration")
+    
+    if risk_score > 60:
+        recommendations.append("🛡️ Develop comprehensive risk mitigation plan before proceeding")
+    
+    if config['team_experience'] == 'Novice':
+        recommendations.append("🎓 Invest in team training or consider engaging AWS Professional Services")
+    
+    recommendations.append("💰 Consider Reserved Instances for 30-60% cost savings on predictable workloads")
+    recommendations.append("📊 Implement comprehensive monitoring and alerting from day one")
+    
+    for i, rec in enumerate(recommendations[:6]):  # Show top 6 recommendations
+        st.write(f"{i+1}. {rec}")
+    
+    # Cost Breakdown Visualization
+    st.markdown('<div class="section-header">💰 Cost Breakdown</div>', unsafe_allow_html=True)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Cost pie chart
+        cost_categories = {
+            'Writer Instance': writer_monthly_cost,
+            'Read Replicas': reader_monthly_cost,
+            'Storage': storage_monthly_cost,
+            'Additional Services': 200
+        }
+        
+        fig_pie = go.Figure(data=[go.Pie(
+            labels=list(cost_categories.keys()),
+            values=list(cost_categories.values()),
+            hole=.3
+        )])
+        
+        fig_pie.update_layout(title="Monthly Cost Distribution", height=400)
+        st.plotly_chart(fig_pie, use_container_width=True)
+    
+    with col2:
+        # Cost projection over time
+        months = list(range(1, 25))  # 2 years
+        growth_rate = config.get('annual_growth_rate', 0.2)
+        monthly_growth_rate = growth_rate / 12
+        
+        projected_costs = []
+        for month in months:
+            projected_cost = total_monthly_cost * (1 + monthly_growth_rate) ** month
+            projected_costs.append(projected_cost)
+        
+        fig_projection = go.Figure()
+        
+        fig_projection.add_trace(go.Scatter(
+            x=months,
+            y=projected_costs,
+            mode='lines+markers',
+            name='Projected Costs',
+            line=dict(color='#e74c3c', width=2)
+        ))
+        
+        fig_projection.update_layout(
+            title="24-Month Cost Projection",
+            xaxis_title="Month",
+            yaxis_title="Monthly Cost ($)",
+            height=400
+        )
+        st.plotly_chart(fig_projection, use_container_width=True)
+    
+    # Performance Metrics
+    st.markdown('<div class="section-header">⚡ Performance Metrics</div>', unsafe_allow_html=True)
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Peak TPS", f"{config['transactions_per_second']:,}")
+        st.metric("Peak Connections", f"{config['concurrent_connections']:,}")
+    
+    with col2:
+        st.metric("CPU Utilization", f"{writer['cpu_utilization']:.1f}%")
+        st.metric("Memory Utilization", f"{writer['memory_utilization']:.1f}%")
+    
+    with col3:
+        st.metric("Storage IOPS", f"{storage['provisioned_iops']:,}")
+        st.metric("Storage Type", storage['storage_type'])
+    
+    with col4:
+        st.metric("Read Queries", f"{config['read_query_percentage']}%")
+        st.metric("Multi-AZ", "Yes" if storage['multi_az'] else "No")
+    
+    # Migration Readiness Assessment
+    st.markdown('<div class="section-header">✅ Migration Readiness Assessment</div>', unsafe_allow_html=True)
+    
+    readiness_factors = [
+        {"Factor": "Technical Architecture", "Status": "✅ Complete" if writer else "❌ Incomplete", "Score": 100 if writer else 0},
+        {"Factor": "Cost Planning", "Status": "✅ Complete", "Score": 100},
+        {"Factor": "Risk Assessment", "Status": "✅ Complete" if risk_score < 100 else "⚠️ Needs Attention", "Score": max(0, 100 - risk_score)},
+        {"Factor": "Team Readiness", "Status": "✅ Ready" if config['team_experience'] != 'Novice' else "⚠️ Training Needed", "Score": 100 if config['team_experience'] != 'Novice' else 60},
+        {"Factor": "Compliance Review", "Status": "✅ Complete" if config.get('compliance_frameworks') else "⚠️ Pending", "Score": 100 if config.get('compliance_frameworks') else 70},
+        {"Factor": "Rollback Plan", "Status": "✅ Complete" if config['rollback_plan'] != 'None' else "❌ Missing", "Score": 100 if config['rollback_plan'] != 'None' else 0}
+    ]
+    
+    readiness_df = pd.DataFrame(readiness_factors)
+    self.safe_dataframe_display(readiness_df[['Factor', 'Status']])
+    
+    overall_readiness = sum(factor['Score'] for factor in readiness_factors) / len(readiness_factors)
+    
+    if overall_readiness >= 90:
+        readiness_status = "🟢 Ready to Proceed"
+        readiness_color = "#28a745"
+    elif overall_readiness >= 70:
+        readiness_status = "🟡 Minor Issues"
+        readiness_color = "#ffc107"
+    else:
+        readiness_status = "🔴 Not Ready"
+        readiness_color = "#dc3545"
+    
+    st.markdown(f"""
+    <div style="background: {readiness_color}20; border-left: 4px solid {readiness_color}; padding: 15px; border-radius: 8px; margin: 15px 0;">
+        <h4>🎯 Overall Migration Readiness: {readiness_status}</h4>
+        <p><strong>Readiness Score:</strong> {overall_readiness:.1f}/100</p>
+        <p><strong>Recommendation:</strong> {'Proceed with migration' if overall_readiness >= 90 else 'Address issues before proceeding' if overall_readiness >= 70 else 'Significant preparation required'}</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Action Items
+    st.markdown('<div class="section-header">📋 Next Steps</div>', unsafe_allow_html=True)
+    
+    next_steps = []
+    
+    if overall_readiness >= 90:
+        next_steps = [
+            "1. ✅ Finalize migration timeline and resource allocation",
+            "2. 🔧 Set up AWS target environment",
+            "3. 📊 Implement monitoring and alerting",
+            "4. 🧪 Begin pilot migration testing",
+            "5. 📋 Conduct final stakeholder review",
+            "6. 🚀 Execute migration plan"
+        ]
+    elif overall_readiness >= 70:
+        next_steps = [
+            "1. ⚠️ Address identified readiness gaps",
+            "2. 🎓 Complete team training if needed",
+            "3. 🛡️ Finalize risk mitigation strategies",
+            "4. 📋 Review and approve rollback procedures",
+            "5. ✅ Re-assess migration readiness",
+            "6. 🚀 Proceed with migration when ready"
+        ]
+    else:
+        next_steps = [
+            "1. 🔴 Address critical readiness issues",
+            "2. 🎓 Invest in team training and expertise",
+            "3. 📋 Develop comprehensive rollback plan",
+            "4. 🛡️ Create detailed risk mitigation strategy",
+            "5. 💰 Review and adjust budget allocation",
+            "6. ⏰ Extend timeline to address preparation needs"
+        ]
+    
+    for step in next_steps:
+        st.write(step)
         
     def render_bulk_upload_tab(self):
             """Render bulk upload functionality"""
