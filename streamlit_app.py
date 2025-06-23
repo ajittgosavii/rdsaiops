@@ -2484,12 +2484,12 @@ class EnterpriseMigrationPlatform:
             else:
                 st.warning("⚠️ Pricing Manager: Using fallback pricing")
         
-        return {
-            'use_aws_pricing': use_aws_pricing,
-            'aws_region': aws_region,
-            'aws_configured': aws_configured,
-            'credential_source': credential_source
-        }
+            return {
+                'use_aws_pricing': use_aws_pricing,
+                'aws_region': aws_region,
+                'aws_configured': aws_configured,
+                'credential_source': credential_source
+            }
     
     def calculate_network_migration_metrics(self, config):
         """Calculate all migration metrics with error handling"""
