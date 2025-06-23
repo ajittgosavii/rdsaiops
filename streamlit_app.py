@@ -17,15 +17,8 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import math
 from functools import lru_cache
-import streamlit as st
-import pandas as pd
-import numpy as np
-# ... your existing imports ...
-
-# ADD THESE NEW IMPORTS after your existing ones:
 import requests
 import xml.etree.ElementTree as ET
-
 
 # For PDF generation
 try:
@@ -38,26 +31,15 @@ try:
 except ImportError:
     PDF_AVAILABLE = False
 
-# Update the anthropic import section (around line 35-40):
-# REPLACE this existing code:
+# Anthropic AI
 try:
     import anthropic
     ANTHROPIC_AVAILABLE = True
 except ImportError:
     ANTHROPIC_AVAILABLE = False
 
-# WITH this enhanced version:
+# vROps availability check
 try:
-    import anthropic
-    ANTHROPIC_AVAILABLE = True
-except ImportError:
-    ANTHROPIC_AVAILABLE = False
-    st.warning("⚠️ Anthropic library not installed. AI features will use fallback logic.")
-
-# ADD vROps availability check:
-try:
-    import requests
-    import xml.etree.ElementTree as ET
     VROPS_AVAILABLE = True
 except ImportError:
     VROPS_AVAILABLE = False
@@ -1644,10 +1626,6 @@ class EnterpriseMigrationPlatform:
         # Initialize all calculators and engines
         self.network_calculator = EnterpriseCalculator()
         self.database_sizing_engine = DatabaseSizingEngine()
-        self.pdf_generator = PDFReportGenerator() if PDF_AVAILABLE else None
-        # Initialize all calculators and engines
-        self.network_calculator = EnterpriseCalculator()
-        self.database_sizing_engine = DatabaseSizingEngine()
         self.pdf_generator = PDFReportGenerator() if PDF_AVAILABLE else None        
         
         # ADD THESE NEW LINES:
@@ -2557,7 +2535,7 @@ class EnterpriseMigrationPlatform:
             'credential_source': credential_source
         }
     
-    def calculate_network_migration_metrics(self, config):
+def calculate_network_migration_metrics(self, config):
         """Calculate all migration metrics with error handling"""
         try:
             # Basic calculations with type safety
@@ -2581,31 +2559,7 @@ class EnterpriseMigrationPlatform:
                 config.get('real_world_mode', True)
             )
             
-                # Calculate costs - adjust based on analysis scope
-            if config.get('analyze_all_methods', False):
-                # When analyzing all methods, use the most cost-effective option
-                migration_options = self.migration_analyzer.analyze_all_options(config)
-                
-                # Find the most cost-effective method
-                best_method = min(migration_options.values(), key=lambda x: x['estimated_cost'])
-                
-                # Use the cost from the best method
-                cost_breakdown = {
-                    'compute': best_method['estimated_cost'] * 0.4,
-                    'transfer': best_method['estimated_cost'] * 0.3,
-                    'storage': best_method['estimated_cost'] * 0.2,
-                    'compliance': len(config['compliance_frameworks']) * 500,
-                    'monitoring': transfer_days * 200,
-                    'total': best_method['estimated_cost']
-                }
-            else:
-                # Use standard DataSync calculation
-                cost_breakdown = self.network_calculator.calculate_enterprise_costs(
-                    config['data_size_gb'], transfer_days, config['datasync_instance_type'], 
-                    config['num_datasync_agents'], config['compliance_frameworks'], config['s3_storage_class']
-                )          
-                  
-                        
+            # Process throughput results
             if len(throughput_result) == 4:
                 datasync_throughput, network_efficiency, theoretical_throughput, real_world_efficiency = throughput_result
             else:
@@ -2624,48 +2578,86 @@ class EnterpriseMigrationPlatform:
             mtu_efficiency = {"1500 (Standard)": 1.0, "9000 (Jumbo Frames)": 1.15, "Custom": 1.1}
             congestion_efficiency = {"Cubic (Default)": 1.0, "BBR": 1.2, "Reno": 0.95, "Vegas": 1.05}
             
-            tcp_factor = tcp_efficiency.get(config['tcp_window_size'], 1.0)
-            mtu_factor = mtu_efficiency.get(config['mtu_size'], 1.0)
-            congestion_factor = congestion_efficiency.get(config['network_congestion_control'], 1.0)
-            wan_factor = 1.3 if config['wan_optimization'] else 1.0
+            tcp_factor = tcp_efficiency.get(config.get('tcp_window_size', 'Default'), 1.0)
+            mtu_factor = mtu_efficiency.get(config.get('mtu_size', '1500 (Standard)'), 1.0)
+            congestion_factor = congestion_efficiency.get(config.get('network_congestion_control', 'Cubic (Default)'), 1.0)
+            wan_factor = 1.3 if config.get('wan_optimization', False) else 1.0
             
             optimized_throughput = datasync_throughput * tcp_factor * mtu_factor * congestion_factor * wan_factor
             optimized_throughput = min(optimized_throughput, config['dx_bandwidth_mbps'] * (config['dedicated_bandwidth'] / 100))
             optimized_throughput = max(1, optimized_throughput)
             
-            # Calculate timing
-            available_hours_per_day = 16 if config['business_hours_restriction'] else 24
+            # Calculate timing FIRST before using in cost calculations
+            available_hours_per_day = 16 if config.get('business_hours_restriction', False) else 24
             transfer_days = (effective_data_gb * 8) / (optimized_throughput * available_hours_per_day * 3600) / 1000
             transfer_days = max(0.1, transfer_days)
             
-            # Calculate costs
-            cost_breakdown = self.network_calculator.calculate_enterprise_costs(
-                config['data_size_gb'], transfer_days, config['datasync_instance_type'], 
-                config['num_datasync_agents'], config['compliance_frameworks'], config['s3_storage_class']
-            )
-
-            # Apply optimization when analyzing all methods
+            # Now calculate costs based on analysis scope
+            if config.get('analyze_all_methods', False):
+                # When analyzing all methods, use the most cost-effective option
+                try:
+                    migration_options = self.migration_analyzer.analyze_all_options(config)
+                    
+                    # Find the most cost-effective method
+                    best_method = min(migration_options.values(), key=lambda x: x['estimated_cost'])
+                    
+                    # Use the cost from the best method
+                    cost_breakdown = {
+                        'compute': best_method['estimated_cost'] * 0.4,
+                        'transfer': best_method['estimated_cost'] * 0.3,
+                        'storage': best_method['estimated_cost'] * 0.2,
+                        'compliance': len(config.get('compliance_frameworks', [])) * 500,
+                        'monitoring': transfer_days * 200,
+                        'total': best_method['estimated_cost'],
+                        'pricing_source': 'Migration Options Analysis',
+                        'last_updated': time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
+                    }
+                except Exception as e:
+                    # Fallback to standard calculation if migration analysis fails
+                    cost_breakdown = self.network_calculator.calculate_enterprise_costs(
+                        config['data_size_gb'], transfer_days, config['datasync_instance_type'], 
+                        config['num_datasync_agents'], config.get('compliance_frameworks', []), 
+                        config.get('s3_storage_class', 'Standard')
+                    )
+            else:
+                # Use standard DataSync calculation
+                cost_breakdown = self.network_calculator.calculate_enterprise_costs(
+                    config['data_size_gb'], transfer_days, config['datasync_instance_type'], 
+                    config['num_datasync_agents'], config.get('compliance_frameworks', []), 
+                    config.get('s3_storage_class', 'Standard')
+                )
+            
+            # Apply optimization factor when analyzing all methods
             if config.get('analyze_all_methods', False):
                 # When analyzing all methods, we find more cost-effective approaches
                 optimization_factor = 0.75  # 25% cost reduction from finding optimal method
                 
                 # Apply optimization to all cost components
                 for key in cost_breakdown:
-                    if key != 'pricing_source' and key != 'last_updated' and key != 'cost_breakdown_detailed':
+                    if key not in ['pricing_source', 'last_updated', 'cost_breakdown_detailed']:
                         if isinstance(cost_breakdown[key], (int, float)):
                             cost_breakdown[key] *= optimization_factor
             
             # Compliance and business impact
             compliance_reqs, compliance_risks = self.network_calculator.assess_compliance_requirements(
-                config['compliance_frameworks'], config['data_classification'], config['data_residency']
+                config.get('compliance_frameworks', []), 
+                config.get('data_classification', 'Internal'), 
+                config.get('data_residency', 'No restrictions')
             )
-            business_impact = self.network_calculator.calculate_business_impact(transfer_days, config['data_types'])
+            business_impact = self.network_calculator.calculate_business_impact(
+                transfer_days, config.get('data_types', [])
+            )
             
             # Get AI-powered networking recommendations
-            target_region_short = config['target_aws_region'].split()[0]
+            target_region_short = config.get('target_aws_region', 'us-east-1').split()[0]
             networking_recommendations = self.network_calculator.get_optimal_networking_architecture(
-                config['source_location'], target_region_short, config['data_size_gb'],
-                config['dx_bandwidth_mbps'], config['database_types'], config['data_types'], config
+                config.get('source_location', 'San Jose, CA'), 
+                target_region_short, 
+                config['data_size_gb'],
+                config['dx_bandwidth_mbps'], 
+                config.get('database_types', []), 
+                config.get('data_types', []), 
+                config
             )
             
             return {
@@ -2697,7 +2689,16 @@ class EnterpriseMigrationPlatform:
                 'optimized_throughput': 100,
                 'network_efficiency': 0.7,
                 'transfer_days': 10,
-                'cost_breakdown': {'compute': 1000, 'transfer': 500, 'storage': 200, 'compliance': 100, 'monitoring': 50, 'total': 1850},
+                'cost_breakdown': {
+                    'compute': 1000, 
+                    'transfer': 500, 
+                    'storage': 200, 
+                    'compliance': 100, 
+                    'monitoring': 50, 
+                    'total': 1850,
+                    'pricing_source': 'Fallback',
+                    'last_updated': time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
+                },
                 'compliance_reqs': [],
                 'compliance_risks': [],
                 'business_impact': {'score': 0.5, 'level': 'Medium', 'recommendation': 'Standard approach'},
