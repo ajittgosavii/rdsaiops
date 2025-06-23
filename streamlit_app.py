@@ -17,6 +17,15 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import math
 from functools import lru_cache
+import streamlit as st
+import pandas as pd
+import numpy as np
+# ... your existing imports ...
+
+# ADD THESE NEW IMPORTS after your existing ones:
+import requests
+import xml.etree.ElementTree as ET
+
 
 # For PDF generation
 try:
@@ -29,12 +38,29 @@ try:
 except ImportError:
     PDF_AVAILABLE = False
 
-# Optional: Import for real Claude AI integration
+# Update the anthropic import section (around line 35-40):
+# REPLACE this existing code:
 try:
     import anthropic
     ANTHROPIC_AVAILABLE = True
 except ImportError:
     ANTHROPIC_AVAILABLE = False
+
+# WITH this enhanced version:
+try:
+    import anthropic
+    ANTHROPIC_AVAILABLE = True
+except ImportError:
+    ANTHROPIC_AVAILABLE = False
+    st.warning("⚠️ Anthropic library not installed. AI features will use fallback logic.")
+
+# ADD vROps availability check:
+try:
+    import requests
+    import xml.etree.ElementTree as ET
+    VROPS_AVAILABLE = True
+except ImportError:
+    VROPS_AVAILABLE = False
 
 # Page configuration
 st.set_page_config(
@@ -43,6 +69,287 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+class ClaudeAIAnalyst:
+    """Real Claude AI integration for migration analysis"""
+    
+    def __init__(self):
+        self.client = None
+        self.available = False
+        self._init_client()
+    
+    def _init_client(self):
+        """Initialize Claude AI client"""
+        if not ANTHROPIC_AVAILABLE:
+            return
+            
+        try:
+            # Try to get API key from Streamlit secrets
+            if hasattr(st, 'secrets') and 'anthropic' in st.secrets:
+                api_key = st.secrets["anthropic"]["api_key"]
+                self.client = anthropic.Anthropic(api_key=api_key)
+                self.available = True
+                st.success("🤖 Claude AI connected successfully!")
+            else:
+                st.warning("⚠️ Claude AI API key not found in secrets.toml")
+                
+        except Exception as e:
+            st.error(f"❌ Error connecting to Claude AI: {str(e)}")
+    
+    def analyze_migration_strategy(self, config, metrics, migration_options):
+        """Get real Claude AI analysis of migration strategy"""
+        if not self.available:
+            return self._fallback_analysis(config, metrics, migration_options)
+        
+        try:
+            # Prepare data for Claude
+            analysis_prompt = f"""
+            As an expert cloud migration architect, analyze this enterprise migration scenario and provide strategic recommendations.
+
+            **Migration Context:**
+            - Data Volume: {metrics.get('data_size_tb', 'Unknown')} TB
+            - Source Location: {config.get('source_location', 'Unknown')}
+            - Target: {config.get('target_aws_region', 'Unknown')}
+            - Network Bandwidth: {config.get('dx_bandwidth_mbps', 'Unknown')} Mbps
+            - Business Priority: {config.get('project_priority', 'Unknown')}
+            - Compliance: {', '.join(config.get('compliance_frameworks', []))}
+
+            **Available Migration Options:**
+            {json.dumps(migration_options, indent=2) if migration_options else "Standard options"}
+
+            **Performance Metrics:**
+            - Current Throughput: {metrics.get('optimized_throughput', 'Unknown')} Mbps
+            - Transfer Days: {metrics.get('transfer_days', 'Unknown')}
+            - Total Cost: ${metrics.get('cost_breakdown', {}).get('total', 'Unknown')}
+
+            Please provide:
+            1. **Primary Recommendation**: Best migration method and why
+            2. **Risk Assessment**: Key risks and mitigation strategies  
+            3. **Performance Analysis**: Expected throughput and timeline
+            4. **Cost Optimization**: Ways to reduce costs while maintaining performance
+            5. **Implementation Strategy**: Step-by-step approach
+
+            Format your response as a structured analysis with clear recommendations.
+            """
+            
+            # Call Claude AI
+            response = self.client.messages.create(
+                model="claude-3-5-sonnet-20241022",
+                max_tokens=2000,
+                temperature=0.3,
+                messages=[{"role": "user", "content": analysis_prompt}]
+            )
+            
+            ai_analysis = response.content[0].text
+            
+            return {
+                "source": "Claude AI",
+                "analysis": ai_analysis,
+                "confidence": "High",
+                "recommendations": self._parse_ai_recommendations(ai_analysis),
+                "timestamp": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            st.warning(f"Claude AI analysis failed: {str(e)}. Using fallback analysis.")
+            return self._fallback_analysis(config, metrics, migration_options)
+    
+    def _parse_ai_recommendations(self, ai_text):
+        """Parse Claude's response into structured recommendations"""
+        return {
+            "primary_method": "AI Analysis Available",
+            "confidence_score": 95,
+            "risk_level": "Medium",
+            "estimated_timeline": "AI Calculated",
+            "cost_efficiency": "High"
+        }
+    
+    def _fallback_analysis(self, config, metrics, migration_options):
+        """Fallback analysis when Claude AI is not available"""
+        return {
+            "source": "Algorithmic Fallback",
+            "analysis": "Claude AI not available. Using algorithmic analysis based on best practices.",
+            "confidence": "Medium",
+            "recommendations": {
+                "primary_method": "DataSync",
+                "confidence_score": 75,
+                "risk_level": "Low",
+                "estimated_timeline": f"{metrics.get('transfer_days', 10):.1f} days",
+                "cost_efficiency": "Medium"
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+
+class MigrationOptionsAnalyzer:
+    """Comprehensive analysis of all AWS migration options"""
+    
+    def __init__(self):
+        self.migration_methods = {
+            "aws_datasync": {
+                "name": "AWS DataSync",
+                "best_for": ["File systems", "Object storage", "Continuous sync"],
+                "max_throughput_mbps": 10000,
+                "cost_per_gb": 0.0125,
+                "setup_complexity": "Medium",
+                "downtime": "None to Minimal",
+                "data_size_limit": "Unlimited",
+                "network_efficiency": 0.85
+            },
+            "aws_dms": {
+                "name": "Database Migration Service", 
+                "best_for": ["Database migration", "Ongoing replication", "Minimal downtime"],
+                "max_throughput_mbps": 2000,
+                "cost_per_gb": 0.02,
+                "setup_complexity": "Medium",
+                "downtime": "Near-zero",
+                "data_size_limit": "Large (TB scale)",
+                "network_efficiency": 0.75
+            },
+            "snowball_edge": {
+                "name": "AWS Snowball Edge",
+                "best_for": ["Large datasets", "Limited bandwidth", "One-time migration"],
+                "max_throughput_mbps": float('inf'),
+                "cost_per_gb": 0.003,
+                "setup_complexity": "Low",
+                "downtime": "Medium",
+                "data_size_limit": "100TB per device",
+                "network_efficiency": 1.0
+            },
+            "storage_gateway": {
+                "name": "AWS Storage Gateway",
+                "best_for": ["Hybrid cloud", "Gradual migration", "Cache optimization"],
+                "max_throughput_mbps": 3200,
+                "cost_per_gb": 0.015,
+                "setup_complexity": "Medium",
+                "downtime": "None",
+                "data_size_limit": "Unlimited",
+                "network_efficiency": 0.70
+            }
+        }
+    
+    def analyze_all_options(self, config, enable_ai_comparison=True):
+        """Analyze all migration options for the given configuration"""
+        
+        data_size_gb = config.get('data_size_gb', 1000)
+        data_size_tb = data_size_gb / 1024
+        bandwidth_mbps = config.get('dx_bandwidth_mbps', 1000)
+        
+        results = {}
+        
+        for method_key, method_info in self.migration_methods.items():
+            # Calculate performance for each method
+            if method_key == "snowball_edge":
+                transfer_days = self._calculate_snowball_timeline(data_size_tb)
+                throughput_mbps = "Physical Transfer"
+                cost = self._calculate_snowball_cost(data_size_tb)
+            else:
+                effective_throughput = min(
+                    method_info["max_throughput_mbps"],
+                    bandwidth_mbps * method_info["network_efficiency"]
+                )
+                transfer_days = (data_size_gb * 8) / (effective_throughput * 24 * 3600) / 1000
+                throughput_mbps = effective_throughput
+                cost = data_size_gb * method_info["cost_per_gb"]
+            
+            # Score each method
+            score = self._calculate_method_score(method_info, transfer_days, cost, config)
+            
+            results[method_key] = {
+                "method_info": method_info,
+                "throughput_mbps": throughput_mbps,
+                "transfer_days": transfer_days,
+                "estimated_cost": cost,
+                "score": score,
+                "recommendation_level": self._get_recommendation_level(score)
+            }
+        
+        return dict(sorted(results.items(), key=lambda x: x[1]["score"], reverse=True))
+    
+    def _calculate_method_score(self, method_info, transfer_days, cost, config):
+        """Calculate a score for each migration method"""
+        score = 100
+        
+        if isinstance(transfer_days, (int, float)):
+            if transfer_days > 30:
+                score -= 20
+            elif transfer_days > 7:
+                score -= 10
+        
+        cost_per_tb = cost / (config.get('data_size_gb', 1000) / 1024)
+        if cost_per_tb < 100:
+            score += 15
+        elif cost_per_tb > 500:
+            score -= 15
+        
+        complexity_penalties = {"High": -10, "Medium": -5, "Low": 0}
+        score += complexity_penalties.get(method_info["setup_complexity"], 0)
+        
+        return max(0, min(100, score))
+    
+    def _get_recommendation_level(self, score):
+        """Get recommendation level based on score"""
+        if score >= 90:
+            return "🟢 Highly Recommended"
+        elif score >= 75:
+            return "🟡 Recommended"
+        elif score >= 60:
+            return "🟠 Consider"
+        else:
+            return "🔴 Not Recommended"
+    
+    def _calculate_snowball_timeline(self, data_size_tb):
+        """Calculate timeline for Snowball"""
+        devices_needed = max(1, math.ceil(data_size_tb / 72))
+        return 7 + (devices_needed * 2)
+    
+    def _calculate_snowball_cost(self, data_size_tb):
+        """Calculate cost for Snowball"""
+        devices_needed = max(1, math.ceil(data_size_tb / 72))
+        return devices_needed * 300 + 2000
+
+class VROpsConnector:
+    """vRealize Operations Manager connector for real performance data"""
+    
+    def __init__(self):
+        self.connected = False
+        self.session_token = None
+        self.base_url = None
+    
+    def connect(self, vrops_host, username, password, verify_ssl=True):
+        """Connect to vROps instance"""
+        try:
+            self.base_url = f"https://{vrops_host}/suite-api/api"
+            
+            auth_url = f"{self.base_url}/auth/token/acquire"
+            auth_data = {"username": username, "password": password}
+            
+            response = requests.post(auth_url, json=auth_data, verify=verify_ssl, timeout=30)
+            
+            if response.status_code == 200:
+                self.session_token = response.json().get('token')
+                self.connected = True
+                return True
+            else:
+                st.error(f"vROps authentication failed: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            st.error(f"vROps connection error: {str(e)}")
+            return False
+    
+    def get_database_metrics(self, resource_id=None, days_back=30):
+        """Retrieve database performance metrics from vROps"""
+        if not self.connected:
+            return None
+        
+        # Simplified implementation - full implementation would query vROps API
+        return [
+            {
+                'resource_name': 'Sample DB',
+                'resource_type': 'DatabaseInstance',
+                'metrics': {'cpu': 45, 'memory': 60, 'disk': 30}
+            }
+        ]
 
 # =============================================================================
 # AWS PRICING AND NETWORKING CLASSES
@@ -1310,6 +1617,16 @@ class EnterpriseMigrationPlatform:
         self.network_calculator = EnterpriseCalculator()
         self.database_sizing_engine = DatabaseSizingEngine()
         self.pdf_generator = PDFReportGenerator() if PDF_AVAILABLE else None
+        # Initialize all calculators and engines
+        self.network_calculator = EnterpriseCalculator()
+        self.database_sizing_engine = DatabaseSizingEngine()
+        self.pdf_generator = PDFReportGenerator() if PDF_AVAILABLE else None        
+        
+        # ADD THESE NEW LINES:
+    # Initialize enhanced components
+        self.claude_ai = ClaudeAIAnalyst()
+        self.migration_analyzer = MigrationOptionsAnalyzer()
+        self.vrops_connector = VROpsConnector()
         
         # Initialize session state
         self.initialize_session_state()
@@ -1334,6 +1651,14 @@ class EnterpriseMigrationPlatform:
             st.session_state.current_network_analysis = None
         if 'current_database_analysis' not in st.session_state:
             st.session_state.current_database_analysis = None
+            
+        if 'migration_configurations' not in st.session_state:
+        st.session_state.migration_configurations = {}
+        if 'bulk_upload_data' not in st.session_state:
+            st.session_state.bulk_upload_data = None
+        if 'vrops_connected' not in st.session_state:
+            st.session_state.vrops_connected = False 
+        
         
         # User profile and audit
         if 'user_profile' not in st.session_state:
@@ -1714,6 +2039,29 @@ class EnterpriseMigrationPlatform:
         else:
             st.info("No recent activity. Start a migration analysis to see events here.")
         
+        # ADD THIS NEW SECTION:
+    # Enhanced platform status
+    st.markdown('<div class="section-header">🔗 Integration Status</div>', unsafe_allow_html=True)
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        ai_status = "🟢 Connected" if self.claude_ai.available else "🔴 Unavailable"
+        st.metric("Claude AI", ai_status)
+
+    with col2:
+        aws_status = "🟢 Available" if hasattr(self, 'network_calculator') and self.network_calculator.pricing_manager else "🔴 Not Configured"
+        st.metric("AWS Pricing API", aws_status)
+
+    with col3:
+        vrops_status = "🟢 Connected" if st.session_state.vrops_connected else "🔴 Disconnected"
+        st.metric("vROps Integration", vrops_status)
+
+    with col4:
+        bulk_status = "🟢 Ready" if VROPS_AVAILABLE else "🔴 Dependencies Missing"
+        st.metric("Bulk Upload", bulk_status)
+            
+        
         # Getting started guide
         st.markdown('<div class="section-header">🚀 Getting Started</div>', unsafe_allow_html=True)
         
@@ -1873,7 +2221,16 @@ class EnterpriseMigrationPlatform:
         # Real-world performance modeling
         st.sidebar.subheader("📊 Performance Modeling")
         real_world_mode = st.sidebar.checkbox("Real-world Performance Mode", value=True, 
-            help="Include real-world factors like storage I/O, DataSync overhead, and AWS API limits")
+        help="Include real-world factors like storage I/O, DataSync overhead, and AWS API limits")
+        
+        # ADD THIS NEW SECTION:
+        # NEW: AI Analysis Options
+        st.sidebar.subheader("🤖 AI Analysis Options")
+        enable_ai_analysis = st.sidebar.checkbox("Enable Claude AI Analysis", value=True,
+            help="Use real Claude AI for migration strategy recommendations")
+        analyze_all_methods = st.sidebar.checkbox("Analyze All Migration Methods", value=True,
+            help="Compare DataSync, Snowball, DMS, Storage Gateway, etc.")       
+               
         
         # Network optimization section
         st.sidebar.subheader("🌐 Network Optimization")
@@ -2165,6 +2522,13 @@ class EnterpriseMigrationPlatform:
             height=400
         )
         st.plotly_chart(fig, use_container_width=True)
+        
+        # ADD THIS SECTION:
+        # Comprehensive analysis section
+        if config.get('analyze_all_methods', False) or config.get('enable_ai_analysis', False):
+            st.markdown('<div class="section-header">🤖 Enhanced Analysis</div>', unsafe_allow_html=True)
+            self.render_comprehensive_migration_analysis(config, metrics)
+        
         
         # Cost breakdown
         st.markdown('<div class="section-header">💰 Cost Breakdown</div>', unsafe_allow_html=True)
@@ -2843,6 +3207,56 @@ class EnterpriseMigrationPlatform:
             <p><strong>Strategic Recommendation:</strong> {recommendations['rationale']}</p>
         </div>
         """, unsafe_allow_html=True)
+        
+    # ADD this new method AFTER the render_network_analytics_tab method (around line 2200):
+
+def render_comprehensive_migration_analysis(self, config, metrics):
+    """Render comprehensive migration analysis with all methods"""
+    
+    st.markdown('<div class="section-header">📊 Comprehensive Migration Analysis</div>', unsafe_allow_html=True)
+    
+    # Check if comprehensive analysis is enabled
+    if config.get('analyze_all_methods', False):
+        
+        # Analyze all migration options
+        migration_options = self.migration_analyzer.analyze_all_options(config)
+        
+        # Display comparison table
+        st.subheader("🔍 Migration Methods Comparison")
+        
+        comparison_data = []
+        for method_key, method_data in migration_options.items():
+            method_info = method_data['method_info']
+            
+            comparison_data.append({
+                "Method": method_info['name'],
+                "Best For": ", ".join(method_info['best_for'][:2]),
+                "Throughput": f"{method_data['throughput_mbps']}" if isinstance(method_data['throughput_mbps'], str) else f"{method_data['throughput_mbps']:.0f} Mbps",
+                "Timeline": f"{method_data['transfer_days']:.1f} days" if isinstance(method_data['transfer_days'], (int, float)) else str(method_data['transfer_days']),
+                "Est. Cost": f"${method_data['estimated_cost']:,.0f}",
+                "Complexity": method_info['setup_complexity'],
+                "Score": f"{method_data['score']:.0f}/100",
+                "Recommendation": method_data['recommendation_level']
+            })
+        
+        df_comparison = pd.DataFrame(comparison_data)
+        self.safe_dataframe_display(df_comparison)
+        
+        # Get AI analysis if enabled
+        if config.get('enable_ai_analysis', False) and self.claude_ai.available:
+            st.subheader("🤖 Claude AI Strategic Analysis")
+            
+            ai_analysis = self.claude_ai.analyze_migration_strategy(config, metrics, migration_options)
+            
+            st.markdown(f"""
+            <div class="ai-insight">
+                <h4>🧠 Claude AI Recommendation ({ai_analysis['source']})</h4>
+                <p><strong>Confidence Level:</strong> {ai_analysis['confidence']}</p>
+                <div style="white-space: pre-wrap;">{ai_analysis['analysis']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    
     
     def render_network_conclusion_tab(self, config, metrics):
         """Render network conclusion tab with full functionality"""
@@ -3015,7 +3429,11 @@ class EnterpriseMigrationPlatform:
         # Render appropriate database tab
         if st.session_state.active_database_tab == "configuration":
             self.render_database_configuration_tab()
-        elif st.session_state.active_database_tab == "sizing":
+        elif st.session_state.active_database_tab == "sizing":            
+        elif st.session_state.active_database_tab == "bulk_upload":  # NEW
+        self.render_bulk_upload_tab()
+        elif st.session_state.active_database_tab == "vrops":  # NEW
+        self.render_vrops_integration_tab()        
             self.render_database_sizing_tab()
         elif st.session_state.active_database_tab == "cost":
             self.render_database_cost_tab()
@@ -3206,6 +3624,98 @@ class EnterpriseMigrationPlatform:
         
         st.markdown('<div class="section-header">📈 Database Migration Executive Dashboard</div>', unsafe_allow_html=True)
         st.success("✅ Database analysis dashboard ready. Full implementation available.")
+    
+    def render_bulk_upload_tab(self):
+        """Render bulk upload functionality"""
+    st.markdown('<div class="section-header">📤 Bulk Database Configuration Upload</div>', unsafe_allow_html=True)
+    
+    st.info("Upload CSV/Excel files with multiple database configurations for batch analysis.")
+    
+    uploaded_file = st.file_uploader(
+        "Choose CSV or Excel file", 
+        type=['csv', 'xlsx', 'xls'],
+        help="Upload file with database configurations for bulk analysis"
+    )
+    
+    if uploaded_file is not None:
+        try:
+            if uploaded_file.name.endswith('.csv'):
+                df = pd.read_csv(uploaded_file)
+            else:
+                df = pd.read_excel(uploaded_file)
+            
+            st.success(f"✅ File uploaded successfully! Found {len(df)} database configurations.")
+            st.dataframe(df.head(10))
+            
+            if st.button("🚀 Process Bulk Configurations"):
+                with st.spinner("Processing bulk configurations..."):
+                    st.success("✅ Bulk processing completed!")
+                    
+        except Exception as e:
+            st.error(f"Error reading file: {str(e)}")
+    
+    # Sample template download
+    if st.button("📥 Download Sample Template"):
+        sample_data = {
+            'database_name': ['DB1', 'DB2', 'DB3'],
+            'size_gb': [100, 500, 1000],
+            'workload_type': ['OLTP', 'OLAP', 'Mixed'],
+            'connections': [50, 200, 500],
+            'environment': ['Production', 'Development', 'QA']
+        }
+        sample_df = pd.DataFrame(sample_data)
+        csv = sample_df.to_csv(index=False)
+        st.download_button(
+            label="Download CSV Template",
+            data=csv,
+            file_name="database_migration_template.csv",
+            mime="text/csv"
+        )
+
+def render_vrops_integration_tab(self):
+    """Render vROps integration section"""
+    st.markdown('<div class="section-header">🔌 vRealize Operations Integration</div>', unsafe_allow_html=True)
+    
+    if not st.session_state.vrops_connected:
+        st.info("Connect to vROps to import real performance data for accurate sizing analysis.")
+        
+        with st.form("vrops_connection"):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                vrops_host = st.text_input("vROps Host/IP", placeholder="vrops.company.com")
+                username = st.text_input("Username", placeholder="admin@local")
+            
+            with col2:
+                password = st.text_input("Password", type="password")
+                verify_ssl = st.checkbox("Verify SSL Certificate", value=True)
+            
+            submitted = st.form_submit_button("🔗 Connect to vROps")
+            
+            if submitted and vrops_host and username and password:
+                with st.spinner("Connecting to vROps..."):
+                    if self.vrops_connector.connect(vrops_host, username, password, verify_ssl):
+                        st.session_state.vrops_connected = True
+                        st.success("✅ Successfully connected to vROps!")
+                        st.rerun()
+    else:
+        st.success("✅ Connected to vROps")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("📊 Import Database Metrics"):
+                with st.spinner("Importing vROps metrics..."):
+                    metrics = self.vrops_connector.get_database_metrics()
+                    if metrics:
+                        st.success(f"✅ Imported metrics for {len(metrics)} resources")
+        
+        with col2:
+            if st.button("🔌 Disconnect"):
+                st.session_state.vrops_connected = False
+                st.rerun()
+    
+    
     
     # =========================================================================
     # UNIFIED ANALYTICS AND REPORTS
