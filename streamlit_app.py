@@ -2345,99 +2345,159 @@ class EnterpriseMigrationPlatform:
     
     def render_aws_credentials_section(self):
         """Render AWS credentials status from multiple sources"""
-    with st.sidebar:
-        st.subheader("🔑 AWS Configuration")
-        
-        # Check multiple credential sources
-        aws_configured = False
-        aws_region = 'us-east-1'
-        credential_source = None
-        
-        try:
-            # Method 1: Check Streamlit secrets
-            if hasattr(st, 'secrets') and 'aws' in st.secrets:
-                aws_configured = True
-                aws_region = st.secrets["aws"].get("region", "us-east-1")
-                credential_source = "Streamlit Secrets"
-                st.success("✅ AWS credentials from secrets.toml")
-                st.write(f"**Region:** {aws_region}")
-                st.write(f"**Source:** {credential_source}")
+        with st.sidebar:
+            st.subheader("🔑 AWS Configuration")
             
-            else:
-                # Method 2: Check if boto3 can create a client (default credential chain)
-                try:
-                    import boto3
-                    from botocore.exceptions import NoCredentialsError, ClientError
-                    
-                    # Try to create a test client to verify credentials
-                    test_client = boto3.client('sts', region_name='us-east-1')  # STS is lightweight
-                    
-                    # Try to get caller identity to verify credentials work
-                    response = test_client.get_caller_identity()
-                    
-                    if response and 'Account' in response:
-                        aws_configured = True
-                        credential_source = "AWS Default Chain"
-                        
-                        # Try to determine the actual source
-                        session = boto3.Session()
-                        credentials = session.get_credentials()
-                        
-                        if credentials:
-                            # Determine credential source
-                            if hasattr(credentials, 'method'):
-                                if 'iam' in credentials.method.lower():
-                                    credential_source = "IAM Role"
-                                elif 'env' in credentials.method.lower():
-                                    credential_source = "Environment Variables"
-                                elif 'shared' in credentials.method.lower():
-                                    credential_source = "AWS Credentials File"
-                                else:
-                                    credential_source = f"AWS Default Chain ({credentials.method})"
-                        
-                        st.success("✅ AWS credentials detected")
-                        st.write(f"**Region:** {aws_region}")
-                        st.write(f"**Source:** {credential_source}")
-                        st.write(f"**Account:** {response['Account']}")
-                        
-                        # Show additional info
-                        with st.expander("🔍 AWS Credential Details"):
-                            st.write(f"**User/Role ARN:** {response.get('Arn', 'Unknown')}")
-                            st.write(f"**User ID:** {response.get('UserId', 'Unknown')}")
-                            
-                            # Test pricing API specifically
-                            try:
-                                pricing_client = boto3.client('pricing', region_name='us-east-1')
-                                pricing_client.describe_services(MaxResults=1)
-                                st.write("**Pricing API:** ✅ Accessible")
-                            except Exception as e:
-                                st.write(f"**Pricing API:** ❌ Error - {str(e)[:50]}...")
-                    
-                except NoCredentialsError:
-                    st.warning("⚠️ No AWS credentials found")
-                    credential_source = "None"
-                    
-                except ClientError as e:
-                    error_code = e.response.get('Error', {}).get('Code', 'Unknown')
-                    
-                    if error_code == 'InvalidUserID.NotFound':
-                        st.error("❌ Invalid AWS Access Key ID")
-                    elif error_code == 'SignatureDoesNotMatch':
-                        st.error("❌ Invalid AWS Secret Access Key")
-                    elif error_code == 'TokenRefreshRequired':
-                        st.warning("⚠️ AWS session token expired")
-                    else:
-                        st.warning(f"⚠️ AWS credentials issue: {error_code}")
-                    
-                    credential_source = f"Error: {error_code}"
-                    
-                except Exception as e:
-                    st.warning(f"⚠️ Cannot verify AWS credentials: {str(e)[:50]}...")
-                    credential_source = f"Error: {str(e)[:30]}..."
+            # Check multiple credential sources
+            aws_configured = False
+            aws_region = 'us-east-1'
+            credential_source = None
+            
+            try:
+                # Method 1: Check Streamlit secrets
+                if hasattr(st, 'secrets') and 'aws' in st.secrets:
+                    aws_configured = True
+                    aws_region = st.secrets["aws"].get("region", "us-east-1")
+                    credential_source = "Streamlit Secrets"
+                    st.success("✅ AWS credentials from secrets.toml")
+                    st.write(f"**Region:** {aws_region}")
+                    st.write(f"**Source:** {credential_source}")
                 
-        except Exception as e:
-            st.error(f"❌ Error checking AWS configuration: {str(e)}")
-            credential_source = "Error"
+                else:
+                    # Method 2: Check if boto3 can create a client (default credential chain)
+                    try:
+                        import boto3
+                        from botocore.exceptions import NoCredentialsError, ClientError
+                        
+                        # Try to create a test client to verify credentials
+                        test_client = boto3.client('sts', region_name='us-east-1')  # STS is lightweight
+                        
+                        # Try to get caller identity to verify credentials work
+                        response = test_client.get_caller_identity()
+                        
+                        if response and 'Account' in response:
+                            aws_configured = True
+                            credential_source = "AWS Default Chain"
+                            
+                            # Try to determine the actual source
+                            session = boto3.Session()
+                            credentials = session.get_credentials()
+                            
+                            if credentials:
+                                # Determine credential source
+                                if hasattr(credentials, 'method'):
+                                    if 'iam' in credentials.method.lower():
+                                        credential_source = "IAM Role"
+                                    elif 'env' in credentials.method.lower():
+                                        credential_source = "Environment Variables"
+                                    elif 'shared' in credentials.method.lower():
+                                        credential_source = "AWS Credentials File"
+                                    else:
+                                        credential_source = f"AWS Default Chain ({credentials.method})"
+                            
+                            st.success("✅ AWS credentials detected")
+                            st.write(f"**Region:** {aws_region}")
+                            st.write(f"**Source:** {credential_source}")
+                            st.write(f"**Account:** {response['Account']}")
+                            
+                            # Show additional info
+                            with st.expander("🔍 AWS Credential Details"):
+                                st.write(f"**User/Role ARN:** {response.get('Arn', 'Unknown')}")
+                                st.write(f"**User ID:** {response.get('UserId', 'Unknown')}")
+                                
+                                # Test pricing API specifically
+                                try:
+                                    pricing_client = boto3.client('pricing', region_name='us-east-1')
+                                    pricing_client.describe_services(MaxResults=1)
+                                    st.write("**Pricing API:** ✅ Accessible")
+                                except Exception as e:
+                                    st.write(f"**Pricing API:** ❌ Error - {str(e)[:50]}...")
+                        
+                    except NoCredentialsError:
+                        st.warning("⚠️ No AWS credentials found")
+                        credential_source = "None"
+                        
+                    except ClientError as e:
+                        error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+                        
+                        if error_code == 'InvalidUserID.NotFound':
+                            st.error("❌ Invalid AWS Access Key ID")
+                        elif error_code == 'SignatureDoesNotMatch':
+                            st.error("❌ Invalid AWS Secret Access Key")
+                        elif error_code == 'TokenRefreshRequired':
+                            st.warning("⚠️ AWS session token expired")
+                        else:
+                            st.warning(f"⚠️ AWS credentials issue: {error_code}")
+                        
+                        credential_source = f"Error: {error_code}"
+                        
+                    except Exception as e:
+                        st.warning(f"⚠️ Cannot verify AWS credentials: {str(e)[:50]}...")
+                        credential_source = f"Error: {str(e)[:30]}..."
+                    
+            except Exception as e:
+                st.error(f"❌ Error checking AWS configuration: {str(e)}")
+                credential_source = "Error"
+            
+            # Configuration help
+            if not aws_configured:
+                with st.expander("🛠️ AWS Setup Help"):
+                    st.markdown("""
+                    **Option 1: Streamlit Secrets (Recommended for local development)**
+                    ```toml
+                    # .streamlit/secrets.toml
+                    [aws]
+                    access_key_id = "AKIA..."
+                    secret_access_key = "..."
+                    region = "us-east-1"
+                    ```
+                    
+                    **Option 2: Environment Variables**
+                    ```bash
+                    export AWS_ACCESS_KEY_ID="AKIA..."
+                    export AWS_SECRET_ACCESS_KEY="..."
+                    export AWS_DEFAULT_REGION="us-east-1"
+                    ```
+                    
+                    **Option 3: AWS Credentials File**
+                    ```bash
+                    aws configure
+                    ```
+                    
+                    **Option 4: IAM Role (for EC2/ECS deployment)**
+                    - Attach IAM role with pricing API permissions
+                    """)
+            
+            # Toggle for using real-time pricing
+            use_aws_pricing = st.checkbox(
+                "Enable Real-time AWS Pricing", 
+                value=aws_configured,
+                help="Use AWS Pricing API for real-time cost calculations",
+                disabled=not aws_configured
+            )
+            
+            # Show current pricing manager status
+            if hasattr(self, 'network_calculator') and self.network_calculator.pricing_manager:
+                pricing_manager = self.network_calculator.pricing_manager
+                if pricing_manager.pricing_client:
+                    st.info("💡 Pricing Manager: Connected")
+                else:
+                    st.warning("⚠️ Pricing Manager: Using fallback pricing")
+            
+            return {
+                'use_aws_pricing': use_aws_pricing,
+                'aws_region': aws_region,
+                'aws_configured': aws_configured,
+                'credential_source': credential_source
+            }
+                    
+                #except Exception as e:
+                 #   st.warning(f"⚠️ Cannot verify AWS credentials: {str(e)[:50]}...")
+                  #  credential_source = f"Error: {str(e)[:30]}..."
+                
+        #except Exception as e:
+            #st.error(f"❌ Error checking AWS configuration: {str(e)}")
+            #credential_source = "Error"
         
         # Configuration help
         if not aws_configured:
