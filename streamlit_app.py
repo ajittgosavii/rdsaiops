@@ -1047,48 +1047,62 @@ class EnterpriseCalculator:
             "recommendation": recommendation
         }
     
-    def get_optimal_networking_architecture(self, source_location, target_region, data_size_gb,
-                                          dx_bandwidth_mbps, database_types, data_types, config):
-        """Get AI-powered networking recommendations"""
-        
-        # Analyze requirements
-        data_size_tb = data_size_gb / 1024
-        has_databases = len(database_types) > 0
-        has_critical_data = any(dt in ["Customer Data", "Financial Records"] for dt in data_types)
-        
-        # Determine primary method
+def get_optimal_networking_architecture(self, source_location, target_region, data_size_gb,
+                                      dx_bandwidth_mbps, database_types, data_types, config):
+    """Get AI-powered networking recommendations"""
+    
+    # Analyze requirements
+    data_size_tb = data_size_gb / 1024
+    has_databases = len(database_types) > 0
+    has_critical_data = any(dt in ["Customer Data", "Financial Records"] for dt in data_types)
+    analyze_all_methods = config.get('analyze_all_methods', False)
+    
+    # Determine primary method based on analysis scope
+    if analyze_all_methods:
+        # Comprehensive analysis - consider hybrid approaches
         if data_size_tb > 100:
             if dx_bandwidth_mbps >= 10000:
                 primary_method = "DataSync Multi-Agent"
             else:
                 primary_method = "Snowball Edge"
         elif has_databases:
-            primary_method = "DMS + DataSync"
+            primary_method = "DMS + DataSync"  # Hybrid approach for comprehensive analysis
         else:
             primary_method = "DataSync"
-        
-        # Determine networking option
-        if dx_bandwidth_mbps >= 1000:
-            networking_option = "Direct Connect (Primary)"
-        elif config.get('qos_enabled', False):
-            networking_option = "Direct Connect + VPN Backup"
+    else:
+        # Simple analysis - stick to core DataSync recommendations
+        if data_size_tb > 100 and dx_bandwidth_mbps < 1000:
+            primary_method = "Snowball Edge"  # Only for very large data + limited bandwidth
         else:
-            networking_option = "VPN Connection"
-        
-        # Determine secondary method
-        if has_critical_data:
-            secondary_method = "S3 Transfer Acceleration"
+            primary_method = "AWS DataSync"  # Default to DataSync for simple analysis
+    
+    # Determine secondary method
+    if has_critical_data:
+        secondary_method = "S3 Transfer Acceleration"
+    else:
+        secondary_method = "Standard Transfer"
+    
+    # Determine networking option
+    if dx_bandwidth_mbps >= 1000:
+        networking_option = "Direct Connect (Primary)"
+    elif config.get('qos_enabled', False):
+        networking_option = "Direct Connect + VPN Backup"
+    else:
+        networking_option = "VPN Connection"
+    
+    # Database migration tool - only suggest complex tools in comprehensive mode
+    if has_databases and analyze_all_methods:
+        if len(database_types) > 1:
+            db_migration_tool = "DMS + Custom Scripts"
         else:
-            secondary_method = "Standard Transfer"
-        
-        # Database migration tool
-        if has_databases:
-            if len(database_types) > 1:
-                db_migration_tool = "DMS + Custom Scripts"
-            else:
-                db_migration_tool = "DMS"
-        else:
-            db_migration_tool = "N/A"
+            db_migration_tool = "DMS"
+    elif has_databases:
+        db_migration_tool = "DMS"  # Simple DMS recommendation
+    else:
+        db_migration_tool = "N/A"
+    
+    # Rest of the method remains the same...
+    # [Keep all the existing calculation code for performance, rationale, etc.]
         
         # Calculate estimated performance
         estimated_throughput = min(dx_bandwidth_mbps * 0.8, 2000)  # Conservative estimate
