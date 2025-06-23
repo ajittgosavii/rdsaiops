@@ -375,8 +375,8 @@ class AWSPricingManager:
              aws_secret_key = None
              aws_region = self.region
              credential_source = "Unknown"
-            
-        try:
+        except pass    
+            try:
                 # Check if AWS secrets are configured in .streamlit/secrets.toml
                 if hasattr(st, 'secrets') and 'aws' in st.secrets:
                     aws_access_key = st.secrets["aws"]["access_key_id"]
@@ -398,7 +398,7 @@ class AWSPricingManager:
                         aws_access_key_id=aws_access_key,
                         aws_secret_access_key=aws_secret_key
                     )
-            else:
+                else:
                     # Fall back to default credential chain (environment variables, IAM role, etc.)
                     st.info("💡 Using default AWS credential chain (IAM role, environment variables, etc.)")
                     
