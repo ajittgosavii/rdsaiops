@@ -1681,7 +1681,7 @@ class EnterpriseMigrationPlatform:
             st.session_state.current_database_analysis = None
             
         if 'migration_configurations' not in st.session_state:
-        st.session_state.migration_configurations = {}
+            st.session_state.migration_configurations = {}
         if 'bulk_upload_data' not in st.session_state:
             st.session_state.bulk_upload_data = None
         if 'vrops_connected' not in st.session_state:
