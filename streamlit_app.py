@@ -1748,9 +1748,9 @@ class EnterpriseMigrationPlatform:
             
             /* Professional main header */
             .main-header {
-                background: linear-gradient(135deg, #1f4e79 0%, #2980b9 100%);
+                background: linear-gradient(135deg, #232F3E 0%, #FF9900 100%);
                 padding: 2rem;
-                border-radius: 15px;
+                border-radius: 8px;
                 color: white;
                 text-align: center;
                 margin-bottom: 2rem;
