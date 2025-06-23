@@ -2403,9 +2403,9 @@ class EnterpriseMigrationPlatform:
                                 'user_id': response.get('UserId', 'Unknown')
                             }
                         
-                except (NoCredentialsError, ClientError):
-                    aws_configured = False
-                    credential_source = "None"
+                    except (NoCredentialsError, ClientError):
+                        aws_configured = False
+                        credential_source = "None"
                     
         except Exception as e:
             aws_configured = False
@@ -2425,7 +2425,7 @@ class EnterpriseMigrationPlatform:
                     with st.expander("🔍 Additional Details"):
                         st.write(f"**ARN:** {info['arn']}")
                         st.write(f"**User ID:** {info['user_id']}")
-        else:
+      else:
             st.warning("⚠️ AWS Not Configured")
             
             # Show setup help
