@@ -2058,7 +2058,7 @@ def render_professional_navigation(self):
         if st.button("📋 Reports", key="nav_reports", use_container_width=True):
             st.session_state.active_main_tab = "reports"
     
-    st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
         
         def safe_dataframe_display(self, df, use_container_width=True, hide_index=True, **kwargs):
             """Safely display a DataFrame by ensuring all values are strings to prevent type mixing"""
@@ -5845,46 +5845,46 @@ def render_professional_navigation(self):
             st.success("✅ Database migration report feature available!")
             st.info("Generate comprehensive PDF reports with database sizing and migration plans.")
         
-    def run(self):
-        """Main application entry point - CLEANED VERSION"""
-        # Render professional header and navigation
-        self.render_header()  # Use existing method name
-        self.render_main_navigation()  # Use existing method name
-        
-        # Add connection status in sidebar (optional)
-        self.render_connection_status_sidebar()  # New method
-        
-        # Clean time indicator (less prominent)
-        current_time = datetime.now()
-        st.markdown(f"""
-        <div style="text-align: right; color: #999; font-size: 0.75em; margin-bottom: 1rem;">
-            Last updated: {current_time.strftime('%H:%M:%S')}
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Render appropriate main tab
-        if st.session_state.active_main_tab == "overview":
-            self.render_overview_tab()
-        elif st.session_state.active_main_tab == "network":
-            self.render_network_migration_platform()
-        elif st.session_state.active_main_tab == "database":
-            self.render_database_migration_platform()
-        elif st.session_state.active_main_tab == "unified":
-            self.render_unified_analytics_tab()
-        elif st.session_state.active_main_tab == "reports":
-            self.render_reports_tab()
-        
-        # Update timestamp
-        self.last_update_time = current_time
-        
-        # Clean footer
-        st.markdown("---")
-        st.markdown("""
-        <div style="text-align: center; color: #666; padding: 1rem;">
-            <strong>🏢 Enterprise Migration Platform v2.0</strong><br>
-            <small>AI-Powered Migration Analysis • Professional Edition</small>
-        </div>
-        """, unsafe_allow_html=True)
+def run(self):
+    """Main application entry point - CLEANED VERSION"""
+    # Render professional header and navigation
+    self.render_header()  # Use existing method name
+    self.render_main_navigation()  # Use existing method name
+    
+    # Add connection status in sidebar (optional)
+    self.render_connection_status_sidebar()  # New method
+    
+    # Clean time indicator (less prominent)
+    current_time = datetime.now()
+    st.markdown(f"""
+    <div style="text-align: right; color: #999; font-size: 0.75em; margin-bottom: 1rem;">
+        Last updated: {current_time.strftime('%H:%M:%S')}
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Render appropriate main tab
+    if st.session_state.active_main_tab == "overview":
+        self.render_overview_tab()
+    elif st.session_state.active_main_tab == "network":
+        self.render_network_migration_platform()
+    elif st.session_state.active_main_tab == "database":
+        self.render_database_migration_platform()
+    elif st.session_state.active_main_tab == "unified":
+        self.render_unified_analytics_tab()
+    elif st.session_state.active_main_tab == "reports":
+        self.render_reports_tab()
+    
+    # Update timestamp
+    self.last_update_time = current_time
+    
+    # Clean footer
+    st.markdown("---")
+    st.markdown("""
+    <div style="text-align: center; color: #666; padding: 1rem;">
+        <strong>🏢 Enterprise Migration Platform v2.0</strong><br>
+        <small>AI-Powered Migration Analysis • Professional Edition</small>
+    </div>
+    """, unsafe_allow_html=True)
             
             # Render appropriate main tab
             if st.session_state.active_main_tab == "overview":
