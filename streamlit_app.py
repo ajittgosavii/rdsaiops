@@ -2360,11 +2360,11 @@ class EnterpriseMigrationPlatform:
         }
     
     def render_aws_credentials_section(self):
-        """Render AWS credentials status from multiple sources"""
+        """Render clean AWS credentials status"""
         with st.sidebar:
             st.subheader("🔑 AWS Configuration")
             
-            # Check multiple credential sources
+            # Check AWS configuration silently
             aws_configured = False
             aws_region = 'us-east-1'
             credential_source = None
@@ -2375,23 +2375,16 @@ class EnterpriseMigrationPlatform:
                     aws_configured = True
                     aws_region = st.secrets["aws"].get("region", "us-east-1")
                     credential_source = "Streamlit Secrets"
-                
                 else:
-                    # Method 2: Check if boto3 can create a client (default credential chain)
+                    # Method 2: Check default credential chain
                     try:
                         import boto3
                         from botocore.exceptions import NoCredentialsError, ClientError
                         
-                        # Try to create a test client to verify credentials
-                        test_client = boto3.client('sts', region_name='us-east-1')  # STS is lightweight
-                        
-                        # Try to get caller identity to verify credentials work
-                        response = test_client.get_caller_identity()
-                        
                         # Try to create a test client
                         test_client = boto3.client('sts', region_name='us-east-1')
                         response = test_client.get_caller_identity()
-                    
+                        
                         if response and 'Account' in response:
                             aws_configured = True
                             credential_source = "AWS Default Chain"
@@ -2402,79 +2395,45 @@ class EnterpriseMigrationPlatform:
                                 'arn': response.get('Arn', 'Unknown'),
                                 'user_id': response.get('UserId', 'Unknown')
                             }
-                        
+                            
                     except (NoCredentialsError, ClientError):
                         aws_configured = False
                         credential_source = "None"
-                    
-        except Exception as e:
-            aws_configured = False
-            credential_source = "Error"
-        
-        # Show simple status
-        if aws_configured:
-            st.success("✅ AWS Configured")
-            st.write(f"**Source:** {credential_source}")
-            st.write(f"**Region:** {aws_region}")
+                        
+            except Exception as e:
+                aws_configured = False
+                credential_source = "Error"
             
-            # Show account info only in debug mode
-            if st.checkbox("Show AWS Details", value=False):
-                if hasattr(self, 'aws_account_info'):
-                    info = self.aws_account_info
-                    st.info(f"**Account:** {info['account_id']}")
-                    with st.expander("🔍 Additional Details"):
-                        st.write(f"**ARN:** {info['arn']}")
-                        st.write(f"**User ID:** {info['user_id']}")
-      else:
-            st.warning("⚠️ AWS Not Configured")
-            
-            # Show setup help
-            with st.expander("🛠️ Setup Help"):
-                st.markdown("""
-                **Quick Setup Options:**
+            # Show simple status
+            if aws_configured:
+                st.success("✅ AWS Configured")
+                st.write(f"**Source:** {credential_source}")
+                st.write(f"**Region:** {aws_region}")
                 
-                1. **Environment Variables:**
-                ```bash
-                export AWS_ACCESS_KEY_ID="AKIA..."
-                export AWS_SECRET_ACCESS_KEY="..."
-                export AWS_DEFAULT_REGION="us-east-1"
-                ```
+                # Show account info only in debug mode
+                if st.checkbox("Show AWS Details", value=False):
+                    if hasattr(self, 'aws_account_info'):
+                        info = self.aws_account_info
+                        st.info(f"**Account:** {info['account_id']}")
+                        with st.expander("🔍 Additional Details"):
+                            st.write(f"**ARN:** {info['arn']}")
+                            st.write(f"**User ID:** {info['user_id']}")
+            else:
+                st.warning("⚠️ AWS Not Configured")
                 
-                2. **Streamlit Secrets:**
-                ```toml
-                # .streamlit/secrets.toml
-                [aws]
-                access_key_id = "AKIA..."
-                secret_access_key = "..."
-                region = "us-east-1"
-                ```
-                
-                3. **AWS CLI:**
-                ```bash
-                aws configure
-                ```
-                """)
-        
-        # Toggle for using real-time pricing
-        use_aws_pricing = st.checkbox(
-            "Enable Real-time Pricing", 
-            value=aws_configured,
-            help="Use AWS Pricing API for real-time cost calculations",
-            disabled=not aws_configured
-        )
-        
-        return {
-            'use_aws_pricing': use_aws_pricing,
-            'aws_region': aws_region,
-            'aws_configured': aws_configured,
-            'credential_source': credential_source
-        }
-            
-            # Configuration help
-            if not aws_configured:
-                with st.expander("🛠️ AWS Setup Help"):
+                # Show setup help
+                with st.expander("🛠️ Setup Help"):
                     st.markdown("""
-                    **Option 1: Streamlit Secrets (Recommended for local development)**
+                    **Quick Setup Options:**
+                    
+                    1. **Environment Variables:**
+                    ```bash
+                    export AWS_ACCESS_KEY_ID="AKIA..."
+                    export AWS_SECRET_ACCESS_KEY="..."
+                    export AWS_DEFAULT_REGION="us-east-1"
+                    ```
+                    
+                    2. **Streamlit Secrets:**
                     ```toml
                     # .streamlit/secrets.toml
                     [aws]
@@ -2483,37 +2442,19 @@ class EnterpriseMigrationPlatform:
                     region = "us-east-1"
                     ```
                     
-                    **Option 2: Environment Variables**
-                    ```bash
-                    export AWS_ACCESS_KEY_ID="AKIA..."
-                    export AWS_SECRET_ACCESS_KEY="..."
-                    export AWS_DEFAULT_REGION="us-east-1"
-                    ```
-                    
-                    **Option 3: AWS Credentials File**
+                    3. **AWS CLI:**
                     ```bash
                     aws configure
                     ```
-                    
-                    **Option 4: IAM Role (for EC2/ECS deployment)**
-                    - Attach IAM role with pricing API permissions
                     """)
             
             # Toggle for using real-time pricing
             use_aws_pricing = st.checkbox(
-                "Enable Real-time AWS Pricing", 
+                "Enable Real-time Pricing", 
                 value=aws_configured,
                 help="Use AWS Pricing API for real-time cost calculations",
                 disabled=not aws_configured
             )
-            
-            # Show current pricing manager status
-            if hasattr(self, 'network_calculator') and self.network_calculator.pricing_manager:
-                pricing_manager = self.network_calculator.pricing_manager
-                if pricing_manager.pricing_client:
-                    st.info("💡 Pricing Manager: Connected")
-                else:
-                    st.warning("⚠️ Pricing Manager: Using fallback pricing")
             
             return {
                 'use_aws_pricing': use_aws_pricing,
@@ -2521,68 +2462,7 @@ class EnterpriseMigrationPlatform:
                 'aws_configured': aws_configured,
                 'credential_source': credential_source
             }
-                    
-                #except Exception as e:
-                 #   st.warning(f"⚠️ Cannot verify AWS credentials: {str(e)[:50]}...")
-                  #  credential_source = f"Error: {str(e)[:30]}..."
-                
-        #except Exception as e:
-            #st.error(f"❌ Error checking AWS configuration: {str(e)}")
-            #credential_source = "Error"
         
-        # Configuration help
-        if not aws_configured:
-            with st.expander("🛠️ AWS Setup Help"):
-                st.markdown("""
-                **Option 1: Streamlit Secrets (Recommended for local development)**
-                ```toml
-                # .streamlit/secrets.toml
-                [aws]
-                access_key_id = "AKIA..."
-                secret_access_key = "..."
-                region = "us-east-1"
-                ```
-                
-                **Option 2: Environment Variables**
-                ```bash
-                export AWS_ACCESS_KEY_ID="AKIA..."
-                export AWS_SECRET_ACCESS_KEY="..."
-                export AWS_DEFAULT_REGION="us-east-1"
-                ```
-                
-                **Option 3: AWS Credentials File**
-                ```bash
-                aws configure
-                ```
-                
-                **Option 4: IAM Role (for EC2/ECS deployment)**
-                - Attach IAM role with pricing API permissions
-                """)
-        
-        # Toggle for using real-time pricing
-        use_aws_pricing = st.checkbox(
-            "Enable Real-time AWS Pricing", 
-            value=aws_configured,
-            help="Use AWS Pricing API for real-time cost calculations",
-            disabled=not aws_configured
-        )
-        
-        
-        # Show current pricing manager status
-        if hasattr(self, 'network_calculator') and self.network_calculator.pricing_manager:
-            pricing_manager = self.network_calculator.pricing_manager
-            if pricing_manager.pricing_client:
-                st.info("💡 Pricing Manager: Connected")
-            else:
-                st.warning("⚠️ Pricing Manager: Using fallback pricing")
-        
-        return {
-            'use_aws_pricing': use_aws_pricing,
-            'aws_region': aws_region,
-            'aws_configured': aws_configured,
-            'credential_source': credential_source
-        }
-    
     def calculate_network_migration_metrics(self, config):
         """Calculate all migration metrics with error handling and agent optimization"""
         try:
