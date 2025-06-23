@@ -77,7 +77,7 @@ class ClaudeAIAnalyst:
                     'connected': True,
                     'source': 'Streamlit Secrets'
                 }
-                 else:
+            else:
                 # REMOVED: Warning message about missing API key
                 self.connection_status = {
                     'connected': False,
