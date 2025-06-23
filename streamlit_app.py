@@ -3600,24 +3600,24 @@ class EnterpriseMigrationPlatform:
     # =========================================================================
     
     def render_database_migration_platform(self):
-    """Render the complete database migration platform"""
-    st.markdown('<div class="section-header">🗄️ Database Migration Platform</div>', unsafe_allow_html=True)
-    
-    # FIXED: Updated database platform navigation with vROps and Bulk Upload
-    col1, col2, col3, col4, col5, col6, col7, col8 = st.columns(8)
-    
-    with col1:
-        if st.button("⚙️ Configuration", key="db_nav_config"):
-            st.session_state.active_database_tab = "configuration"
-    with col2:
-        if st.button("📊 Sizing Analysis", key="db_nav_sizing"):
-            st.session_state.active_database_tab = "sizing"
-    with col3:
-        if st.button("💰 Cost Analysis", key="db_nav_cost"):
-            st.session_state.active_database_tab = "cost"
-    with col4:
-        if st.button("⚠️ Risk Assessment", key="db_nav_risk"):
-            st.session_state.active_database_tab = "risk"
+        """Render the complete database migration platform"""
+        st.markdown('<div class="section-header">🗄️ Database Migration Platform</div>', unsafe_allow_html=True)
+        
+        # FIXED: Updated database platform navigation with vROps and Bulk Upload
+        col1, col2, col3, col4, col5, col6, col7, col8 = st.columns(8)
+        
+        with col1:
+            if st.button("⚙️ Configuration", key="db_nav_config"):
+                st.session_state.active_database_tab = "configuration"
+        with col2:
+            if st.button("📊 Sizing Analysis", key="db_nav_sizing"):
+                st.session_state.active_database_tab = "sizing"
+        with col3:
+            if st.button("💰 Cost Analysis", key="db_nav_cost"):
+                st.session_state.active_database_tab = "cost"
+        with col4:
+            if st.button("⚠️ Risk Assessment", key="db_nav_risk"):
+                st.session_state.active_database_tab = "risk"
         with col5:
             if st.button("📋 Migration Plan", key="db_nav_plan"):
                 st.session_state.active_database_tab = "plan"
