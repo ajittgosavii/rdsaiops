@@ -2341,6 +2341,10 @@ class EnterpriseMigrationPlatform:
             'use_aws_pricing': aws_config['use_aws_pricing'],
             'aws_region': aws_config['aws_region'],
             'aws_configured': aws_config['aws_configured']
+            'target_aws_region': target_aws_region,
+            'analyze_all_methods': analyze_all_methods,  # ADD THIS LINE
+            'enable_ai_analysis': enable_ai_analysis,    # ADD THIS LINE
+        
         }
     
     def render_aws_credentials_section(self):
@@ -2576,6 +2580,31 @@ class EnterpriseMigrationPlatform:
                 config.get('real_world_mode', True)
             )
             
+                # Calculate costs - adjust based on analysis scope
+            if config.get('analyze_all_methods', False):
+                # When analyzing all methods, use the most cost-effective option
+                migration_options = self.migration_analyzer.analyze_all_options(config)
+                
+                # Find the most cost-effective method
+                best_method = min(migration_options.values(), key=lambda x: x['estimated_cost'])
+                
+                # Use the cost from the best method
+                cost_breakdown = {
+                    'compute': best_method['estimated_cost'] * 0.4,
+                    'transfer': best_method['estimated_cost'] * 0.3,
+                    'storage': best_method['estimated_cost'] * 0.2,
+                    'compliance': len(config['compliance_frameworks']) * 500,
+                    'monitoring': transfer_days * 200,
+                    'total': best_method['estimated_cost']
+                }
+            else:
+                # Use standard DataSync calculation
+                cost_breakdown = self.network_calculator.calculate_enterprise_costs(
+                    config['data_size_gb'], transfer_days, config['datasync_instance_type'], 
+                    config['num_datasync_agents'], config['compliance_frameworks'], config['s3_storage_class']
+                )          
+                  
+                        
             if len(throughput_result) == 4:
                 datasync_throughput, network_efficiency, theoretical_throughput, real_world_efficiency = throughput_result
             else:
