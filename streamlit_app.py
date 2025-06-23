@@ -2784,7 +2784,7 @@ def render_network_dashboard_tab(self, config, metrics):
         fig_cost.update_layout(title="Cost Distribution", height=400)
         st.plotly_chart(fig_cost, use_container_width=True)
     
-    def render_network_analysis_tab(self, config, metrics):
+def render_network_analysis_tab(self, config, metrics):
         """Render network analysis tab with full functionality"""
         st.markdown('<div class="section-header">🌐 Network Analysis & Architecture Optimization</div>', unsafe_allow_html=True)
         
