@@ -3641,7 +3641,7 @@ def render_network_conclusion_tab(self, config, metrics):
     # DATABASE MIGRATION METHODS (Simplified)
     # =========================================================================
     
-    def render_database_migration_platform(self):
+def render_database_migration_platform(self):
         """Render the complete database migration platform"""
         st.markdown('<div class="section-header">🗄️ Database Migration Platform</div>', unsafe_allow_html=True)
         
@@ -3691,7 +3691,7 @@ def render_network_conclusion_tab(self, config, metrics):
         elif st.session_state.active_database_tab == "vrops":  # NEW
             self.render_vrops_integration_tab()
             
-    def render_database_configuration_tab(self):
+def render_database_configuration_tab(self):
         """Render database configuration tab"""
         st.markdown('<div class="section-header">⚙️ Database Migration Configuration</div>', unsafe_allow_html=True)
         
@@ -3827,7 +3827,7 @@ def render_network_conclusion_tab(self, config, metrics):
                 st.success("✅ Database analysis completed! Navigate to other tabs to view results.")
     
     # Simplified database tab renderers
-    def render_database_sizing_tab(self):
+def render_database_sizing_tab(self):
         """Render database sizing analysis tab"""
         if not st.session_state.current_database_analysis:
             st.warning("⚠️ Please run analysis in Configuration tab first.")
@@ -3836,7 +3836,7 @@ def render_network_conclusion_tab(self, config, metrics):
         st.markdown('<div class="section-header">📊 AI-Powered Database Sizing Analysis</div>', unsafe_allow_html=True)
         st.info("Database sizing analysis complete. View detailed results in the configuration.")
     
-    def render_database_cost_tab(self):
+def render_database_cost_tab(self):
         """Render database cost analysis tab"""
         if not st.session_state.current_database_analysis:
             st.warning("⚠️ Please run analysis in Configuration tab first.")
@@ -3845,7 +3845,7 @@ def render_network_conclusion_tab(self, config, metrics):
         st.markdown('<div class="section-header">💰 Comprehensive Database Cost Analysis</div>', unsafe_allow_html=True)
         st.info("Database cost analysis available. Configure AWS pricing for detailed costs.")
     
-    def render_database_risk_tab(self):
+def render_database_risk_tab(self):
         """Render database risk assessment tab"""
         if not st.session_state.current_database_analysis:
             st.warning("⚠️ Please run analysis in Configuration tab first.")
@@ -3854,7 +3854,7 @@ def render_network_conclusion_tab(self, config, metrics):
         st.markdown('<div class="section-header">⚠️ Comprehensive Risk Assessment</div>', unsafe_allow_html=True)
         st.info("Database risk assessment available. Review configuration for risk factors.")
     
-    def render_database_plan_tab(self):
+def render_database_plan_tab(self):
         """Render database migration plan tab"""
         if not st.session_state.current_database_analysis:
             st.warning("⚠️ Please run analysis in Configuration tab first.")
@@ -3863,7 +3863,7 @@ def render_network_conclusion_tab(self, config, metrics):
         st.markdown('<div class="section-header">📋 Comprehensive Migration Plan</div>', unsafe_allow_html=True)
         st.info("Database migration plan available. See timeline and phases.")
     
-    def render_database_dashboard_tab(self):
+def render_database_dashboard_tab(self):
         """Render database executive dashboard"""
         if not st.session_state.current_database_analysis:
             st.warning("⚠️ Please run analysis in Configuration tab first.")
@@ -3872,7 +3872,7 @@ def render_network_conclusion_tab(self, config, metrics):
         st.markdown('<div class="section-header">📈 Database Migration Executive Dashboard</div>', unsafe_allow_html=True)
         st.success("✅ Database analysis dashboard ready. Full implementation available.")
     
-    def render_bulk_upload_tab(self):
+def render_bulk_upload_tab(self):
         """Render bulk upload functionality"""
         st.markdown('<div class="section-header">📤 Bulk Database Configuration Upload</div>', unsafe_allow_html=True)
         
