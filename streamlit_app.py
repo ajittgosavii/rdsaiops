@@ -2476,6 +2476,7 @@ class EnterpriseMigrationPlatform:
             disabled=not aws_configured
         )
         
+        
         # Show current pricing manager status
         if hasattr(self, 'network_calculator') and self.network_calculator.pricing_manager:
             pricing_manager = self.network_calculator.pricing_manager
@@ -2489,7 +2490,7 @@ class EnterpriseMigrationPlatform:
             'aws_region': aws_region,
             'aws_configured': aws_configured,
             'credential_source': credential_source
-            }
+        }
     
     def calculate_network_migration_metrics(self, config):
         """Calculate all migration metrics with error handling"""
