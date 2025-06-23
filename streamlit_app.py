@@ -3343,7 +3343,7 @@ def render_network_security_tab(self, config, metrics):
             for risk in metrics['compliance_risks']:
                 st.warning(risk)
     
-    def render_network_analytics_tab(self, config, metrics):
+def render_network_analytics_tab(self, config, metrics):
         """Render network analytics and reporting tab with full functionality"""
         st.markdown('<div class="section-header">📈 Analytics & Reporting</div>', unsafe_allow_html=True)
         
@@ -3451,7 +3451,7 @@ def render_network_security_tab(self, config, metrics):
         
     # ADD this new method AFTER the render_network_analytics_tab method (around line 2200):
 
-    def render_comprehensive_migration_analysis(self, config, metrics):
+def render_comprehensive_migration_analysis(self, config, metrics):
         """Render comprehensive migration analysis with all methods"""
         
         st.markdown('<div class="section-header">📊 Comprehensive Migration Analysis</div>', unsafe_allow_html=True)
@@ -3499,7 +3499,7 @@ def render_network_security_tab(self, config, metrics):
         
         
     
-    def render_network_conclusion_tab(self, config, metrics):
+def render_network_conclusion_tab(self, config, metrics):
         """Render network conclusion tab with full functionality"""
         st.markdown('<div class="section-header">🎯 Final Strategic Recommendation & Executive Decision</div>', unsafe_allow_html=True)
         
