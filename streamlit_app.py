@@ -2388,9 +2388,9 @@ class EnterpriseMigrationPlatform:
                         # Try to get caller identity to verify credentials work
                         response = test_client.get_caller_identity()
                         
- # Try to create a test client
-                    test_client = boto3.client('sts', region_name='us-east-1')
-                    response = test_client.get_caller_identity()
+                        # Try to create a test client
+                        test_client = boto3.client('sts', region_name='us-east-1')
+                        response = test_client.get_caller_identity()
                     
                     if response and 'Account' in response:
                         aws_configured = True
