@@ -443,8 +443,7 @@ class AWSPricingManager:
                         st.info(f"💡 AWS Account: {account_id} | Region: {aws_region}")
                     except:
                         pass  # Don't fail if we can't get STS info
-                except:
-                    pass  # Don't fail if we can't get STS info             
+                           
                                
             except ClientError as e:
                 error_code = e.response['Error']['Code']
