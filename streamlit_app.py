@@ -2392,16 +2392,16 @@ class EnterpriseMigrationPlatform:
                         test_client = boto3.client('sts', region_name='us-east-1')
                         response = test_client.get_caller_identity()
                     
-                    if response and 'Account' in response:
-                        aws_configured = True
-                        credential_source = "AWS Default Chain"
-                        
-                        # Store account info for optional display
-                        self.aws_account_info = {
-                            'account_id': response['Account'],
-                            'arn': response.get('Arn', 'Unknown'),
-                            'user_id': response.get('UserId', 'Unknown')
-                        }
+                        if response and 'Account' in response:
+                            aws_configured = True
+                            credential_source = "AWS Default Chain"
+                            
+                            # Store account info for optional display
+                            self.aws_account_info = {
+                                'account_id': response['Account'],
+                                'arn': response.get('Arn', 'Unknown'),
+                                'user_id': response.get('UserId', 'Unknown')
+                            }
                         
                 except (NoCredentialsError, ClientError):
                     aws_configured = False
