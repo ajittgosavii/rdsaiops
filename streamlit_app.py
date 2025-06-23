@@ -370,11 +370,11 @@ class AWSPricingManager:
     def _init_clients(self):
         """Initialize AWS clients using Streamlit secrets"""
         try:
-    # Try to get AWS credentials from Streamlit secrets
-    aws_access_key = None
-    aws_secret_key = None
-    aws_region = self.region
-    credential_source = "Unknown"
+            # Try to get AWS credentials from Streamlit secrets
+            aws_access_key = None
+            aws_secret_key = None
+            aws_region = self.region
+            credential_source = "Unknown"
     
             try:
                 # Check if AWS secrets are configured in .streamlit/secrets.toml
