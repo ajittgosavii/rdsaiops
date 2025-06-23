@@ -375,8 +375,8 @@ class AWSPricingManager:
              aws_secret_key = None
              aws_region = self.region
              credential_source = "Unknown"
-        pass    
-            try:
+            
+            #try:
                 # Check if AWS secrets are configured in .streamlit/secrets.toml
                 if hasattr(st, 'secrets') and 'aws' in st.secrets:
                     aws_access_key = st.secrets["aws"]["access_key_id"]
@@ -422,6 +422,8 @@ class AWSPricingManager:
                 else:
                     credential_source = "AWS Default Chain"
                 
+                
+                
                     
             except KeyError as e:
                 st.warning(f"⚠️ AWS secrets configuration incomplete: {str(e)}")
@@ -436,14 +438,16 @@ class AWSPricingManager:
                 response = self.pricing_client.describe_services(MaxResults=1)
                 st.success(f"✅ AWS Pricing API connected via {credential_source}")
                 
-                # Additional connection details
-            if credential_source != "Streamlit Secrets":
-                # Get additional info for non-secrets connections
-                try:
-                    sts_client = boto3.client('sts', region_name='us-east-1')
-                    identity = sts_client.get_caller_identity()
-                    account_id = identity.get('Account', 'Unknown')
-                    st.info(f"💡 AWS Account: {account_id} | Region: {aws_region}")
+                            # Additional connection details
+                if credential_source != "Streamlit Secrets":
+                    # Get additional info for non-secrets connections
+                    try:
+                        sts_client = boto3.client('sts', region_name='us-east-1')
+                        identity = sts_client.get_caller_identity()
+                        account_id = identity.get('Account', 'Unknown')
+                        st.info(f"💡 AWS Account: {account_id} | Region: {aws_region}")
+                    except:
+                        pass  # Don't fail if we can't get STS info
                 except:
                     pass  # Don't fail if we can't get STS info             
                                
@@ -2346,7 +2350,7 @@ class EnterpriseMigrationPlatform:
         }
     
     def render_aws_credentials_section(self):
-    """Render AWS credentials status from multiple sources"""
+        """Render AWS credentials status from multiple sources"""
     with st.sidebar:
         st.subheader("🔑 AWS Configuration")
         
@@ -3767,7 +3771,7 @@ def render_comprehensive_migration_analysis(self, config, metrics):
     
     def render_bulk_upload_tab(self):
         """Render bulk upload functionality"""
-    st.markdown('<div class="section-header">📤 Bulk Database Configuration Upload</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header">📤 Bulk Database Configuration Upload</div>', unsafe_allow_html=True)
     
     st.info("Upload CSV/Excel files with multiple database configurations for batch analysis.")
     
