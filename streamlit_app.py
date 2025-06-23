@@ -2749,54 +2749,54 @@ class EnterpriseMigrationPlatform:
                 }
     
     def _analyze_datasync_agent_optimization(self, data_size_tb, dx_bandwidth_mbps, current_agents, config):
-    """Analyze DataSync agent configuration and provide optimization recommendations"""
-    try:
-        # Calculate optimal agent count based on various factors
-        
-        # Factor 1: Data size optimization
-        # Rule: 1 agent per 5-10TB for optimal performance
-        size_based_agents = max(1, min(10, int(data_size_tb / 7)))  # Sweet spot at 7TB per agent
-        
-        # Factor 2: Bandwidth optimization  
-        # Rule: Each agent can effectively utilize 500-1000 Mbps
-        bandwidth_based_agents = max(1, min(20, int(dx_bandwidth_mbps / 750)))  # 750 Mbps per agent optimal
-        
-        # Factor 3: File characteristics
-        avg_file_size = config.get('avg_file_size', '10-100MB (Medium files)')
-        if 'small files' in avg_file_size.lower():
-            file_factor = 1.5  # More agents for small files
-        elif 'large files' in avg_file_size.lower():
-            file_factor = 0.8  # Fewer agents for large files
-        else:
-            file_factor = 1.0
-        
-        # Factor 4: Network conditions
-        network_latency = float(config.get('network_latency', 25))
-        packet_loss = float(config.get('packet_loss', 0.1))
-        
-        network_factor = 1.0
-        if network_latency > 50:
-            network_factor += 0.3  # More agents for high latency
-        if packet_loss > 0.5:
-            network_factor += 0.2  # More agents for packet loss
-        
-        # Calculate recommended agents
-        recommended_agents = int((size_based_agents + bandwidth_based_agents) / 2 * file_factor * network_factor)
-        recommended_agents = max(1, min(15, recommended_agents))  # Cap between 1-15
-        
-        # Performance analysis
-        current_efficiency = self._calculate_agent_efficiency(current_agents, data_size_tb, dx_bandwidth_mbps)
-        optimal_efficiency = self._calculate_agent_efficiency(recommended_agents, data_size_tb, dx_bandwidth_mbps)
-        
-        # Cost impact analysis
-        agent_hourly_cost = self._get_agent_hourly_cost(config.get('datasync_instance_type', 'm5.large'))
-        current_cost_per_hour = current_agents * agent_hourly_cost
-        recommended_cost_per_hour = recommended_agents * agent_hourly_cost
-        cost_change_pct = ((recommended_cost_per_hour - current_cost_per_hour) / current_cost_per_hour) * 100
-        
-        # Performance impact analysis
-        performance_gain_pct = ((optimal_efficiency - current_efficiency) / current_efficiency) * 100
-        
+        """Analyze DataSync agent configuration and provide optimization recommendations"""
+        try:
+            # Calculate optimal agent count based on various factors
+            
+            # Factor 1: Data size optimization
+            # Rule: 1 agent per 5-10TB for optimal performance
+            size_based_agents = max(1, min(10, int(data_size_tb / 7)))  # Sweet spot at 7TB per agent
+            
+            # Factor 2: Bandwidth optimization  
+            # Rule: Each agent can effectively utilize 500-1000 Mbps
+            bandwidth_based_agents = max(1, min(20, int(dx_bandwidth_mbps / 750)))  # 750 Mbps per agent optimal
+            
+            # Factor 3: File characteristics
+            avg_file_size = config.get('avg_file_size', '10-100MB (Medium files)')
+            if 'small files' in avg_file_size.lower():
+                file_factor = 1.5  # More agents for small files
+            elif 'large files' in avg_file_size.lower():
+                file_factor = 0.8  # Fewer agents for large files
+            else:
+                file_factor = 1.0
+            
+            # Factor 4: Network conditions
+            network_latency = float(config.get('network_latency', 25))
+            packet_loss = float(config.get('packet_loss', 0.1))
+            
+            network_factor = 1.0
+            if network_latency > 50:
+                network_factor += 0.3  # More agents for high latency
+            if packet_loss > 0.5:
+                network_factor += 0.2  # More agents for packet loss
+            
+            # Calculate recommended agents
+            recommended_agents = int((size_based_agents + bandwidth_based_agents) / 2 * file_factor * network_factor)
+            recommended_agents = max(1, min(15, recommended_agents))  # Cap between 1-15
+            
+            # Performance analysis
+            current_efficiency = self._calculate_agent_efficiency(current_agents, data_size_tb, dx_bandwidth_mbps)
+            optimal_efficiency = self._calculate_agent_efficiency(recommended_agents, data_size_tb, dx_bandwidth_mbps)
+            
+            # Cost impact analysis
+            agent_hourly_cost = self._get_agent_hourly_cost(config.get('datasync_instance_type', 'm5.large'))
+            current_cost_per_hour = current_agents * agent_hourly_cost
+            recommended_cost_per_hour = recommended_agents * agent_hourly_cost
+            cost_change_pct = ((recommended_cost_per_hour - current_cost_per_hour) / current_cost_per_hour) * 100
+            
+            # Performance impact analysis
+            performance_gain_pct = ((optimal_efficiency - current_efficiency) / current_efficiency) * 100
+            
         # Generate recommendations
         if recommended_agents > current_agents:
             change_type = "INCREASE"
