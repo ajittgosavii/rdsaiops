@@ -2894,7 +2894,7 @@ def render_network_analysis_tab(self, config, metrics):
         
         self.safe_dataframe_display(quality_metrics)
     
-    def render_network_planner_tab(self, config, metrics):
+def render_network_planner_tab(self, config, metrics):
         """Render migration planner tab with full functionality"""
         st.markdown('<div class="section-header">📊 Migration Planning & Strategy</div>', unsafe_allow_html=True)
         
@@ -3041,7 +3041,7 @@ def render_network_analysis_tab(self, config, metrics):
         </div>
         """, unsafe_allow_html=True)
     
-    def render_network_performance_tab(self, config, metrics):
+def render_network_performance_tab(self, config, metrics):
         """Render network performance optimization tab with full functionality"""
         st.markdown('<div class="section-header">⚡ Performance Optimization</div>', unsafe_allow_html=True)
         
@@ -3243,7 +3243,7 @@ def render_network_analysis_tab(self, config, metrics):
             st.warning(f"Error generating DataSync recommendations: {str(e)}")
             st.info("Basic performance analysis available")
     
-    def render_network_security_tab(self, config, metrics):
+def render_network_security_tab(self, config, metrics):
         """Render network security and compliance tab with full functionality"""
         st.markdown('<div class="section-header">🔒 Security & Compliance Management</div>', unsafe_allow_html=True)
         
