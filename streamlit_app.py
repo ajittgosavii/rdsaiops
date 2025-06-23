@@ -2550,204 +2550,276 @@ class EnterpriseMigrationPlatform:
         }
     
     def calculate_network_migration_metrics(self, config):
-            """Calculate all migration metrics with error handling"""
+        """Calculate all migration metrics with error handling and agent optimization"""
+        try:
+            # Basic calculations with type safety
+            data_size_gb = float(config.get('data_size_gb', 1000))
+            data_size_tb = max(0.1, data_size_gb / 1024)
+            effective_data_gb = data_size_gb * 0.85
+            
+            # Ensure numeric values from config
+            dx_bandwidth_mbps = float(config.get('dx_bandwidth_mbps', 1000))
+            network_latency = float(config.get('network_latency', 25))
+            network_jitter = float(config.get('network_jitter', 5))
+            packet_loss = float(config.get('packet_loss', 0.1))
+            dedicated_bandwidth = float(config.get('dedicated_bandwidth', 60))
+            num_datasync_agents = int(config.get('num_datasync_agents', 1))
+            
+            # AGENT OPTIMIZATION ANALYSIS - with null check
+            agent_analysis = None
             try:
-                # Basic calculations with type safety
-                data_size_gb = float(config.get('data_size_gb', 1000))
-                data_size_tb = max(0.1, data_size_gb / 1024)
-                effective_data_gb = data_size_gb * 0.85
-                
-                # Ensure numeric values from config
-                dx_bandwidth_mbps = float(config.get('dx_bandwidth_mbps', 1000))
-                network_latency = float(config.get('network_latency', 25))
-                network_jitter = float(config.get('network_jitter', 5))
-                packet_loss = float(config.get('packet_loss', 0.1))
-                dedicated_bandwidth = float(config.get('dedicated_bandwidth', 60))
-                num_datasync_agents = int(config.get('num_datasync_agents', 1))
-                
-                # AGENT OPTIMIZATION ANALYSIS
                 agent_analysis = self._analyze_datasync_agent_optimization(
                     data_size_tb, dx_bandwidth_mbps, num_datasync_agents, config
                 )
-                
-                # Calculate throughput with current configuration
-                throughput_result = self.network_calculator.calculate_enterprise_throughput(
-                    config['datasync_instance_type'], num_datasync_agents, config['avg_file_size'], 
-                    config['dx_bandwidth_mbps'], config['network_latency'], config['network_jitter'], 
-                    config['packet_loss'], config['qos_enabled'], config['dedicated_bandwidth'], 
-                    config.get('real_world_mode', True)
-                )
-                
-                
-                
-                # Calculate throughput with optimizations
-                throughput_result = self.network_calculator.calculate_enterprise_throughput(
-                    config['datasync_instance_type'], config['num_datasync_agents'], config['avg_file_size'], 
-                    config['dx_bandwidth_mbps'], config['network_latency'], config['network_jitter'], 
-                    config['packet_loss'], config['qos_enabled'], config['dedicated_bandwidth'], 
-                    config.get('real_world_mode', True)
-                )
-                
-                # Process throughput results
+            except Exception as e:
+                agent_analysis = {
+                    "status": "ERROR",
+                    "error": str(e),
+                    "current_agents": num_datasync_agents,
+                    "recommended_agents": num_datasync_agents,
+                    "recommendation": "Agent analysis unavailable"
+                }
+            
+            # Ensure agent_analysis is not None
+            if agent_analysis is None:
+                agent_analysis = {
+                    "status": "UNKNOWN",
+                    "current_agents": num_datasync_agents,
+                    "recommended_agents": num_datasync_agents,
+                    "recommendation": "Analysis not performed"
+                }
+            
+            # Calculate throughput with current configuration
+            throughput_result = None
+            try:
+                if hasattr(self, 'network_calculator') and self.network_calculator is not None:
+                    throughput_result = self.network_calculator.calculate_enterprise_throughput(
+                        config['datasync_instance_type'], num_datasync_agents, config['avg_file_size'], 
+                        config['dx_bandwidth_mbps'], config['network_latency'], config['network_jitter'], 
+                        config['packet_loss'], config['qos_enabled'], config['dedicated_bandwidth'], 
+                        config.get('real_world_mode', True)
+                    )
+            except Exception as e:
+                st.warning(f"Throughput calculation failed: {str(e)}")
+            
+            # Process throughput results with fallback
+            if throughput_result is not None:
                 if len(throughput_result) == 4:
                     datasync_throughput, network_efficiency, theoretical_throughput, real_world_efficiency = throughput_result
-                else:
-                    # Fallback for backward compatibility
+                elif len(throughput_result) == 2:
                     datasync_throughput, network_efficiency = throughput_result
                     theoretical_throughput = datasync_throughput * 1.5
                     real_world_efficiency = 0.7
-                
-                # Ensure valid throughput values
-                datasync_throughput = max(1, datasync_throughput)
-                network_efficiency = max(0.1, min(1.0, network_efficiency))
-                
-                # Apply network optimizations
-                tcp_efficiency = {"Default": 1.0, "64KB": 1.05, "128KB": 1.1, "256KB": 1.15, 
-                                "512KB": 1.2, "1MB": 1.25, "2MB": 1.3}
-                mtu_efficiency = {"1500 (Standard)": 1.0, "9000 (Jumbo Frames)": 1.15, "Custom": 1.1}
-                congestion_efficiency = {"Cubic (Default)": 1.0, "BBR": 1.2, "Reno": 0.95, "Vegas": 1.05}
-                
-                tcp_factor = tcp_efficiency.get(config.get('tcp_window_size', 'Default'), 1.0)
-                mtu_factor = mtu_efficiency.get(config.get('mtu_size', '1500 (Standard)'), 1.0)
-                congestion_factor = congestion_efficiency.get(config.get('network_congestion_control', 'Cubic (Default)'), 1.0)
-                wan_factor = 1.3 if config.get('wan_optimization', False) else 1.0
-                
-                optimized_throughput = datasync_throughput * tcp_factor * mtu_factor * congestion_factor * wan_factor
-                optimized_throughput = min(optimized_throughput, config['dx_bandwidth_mbps'] * (config['dedicated_bandwidth'] / 100))
-                optimized_throughput = max(1, optimized_throughput)
-                
-                # Calculate timing FIRST before using in cost calculations
-                available_hours_per_day = 16 if config.get('business_hours_restriction', False) else 24
-                transfer_days = (effective_data_gb * 8) / (optimized_throughput * available_hours_per_day * 3600) / 1000
-                transfer_days = max(0.1, transfer_days)
-                
-                # Now calculate costs based on analysis scope
-                if config.get('analyze_all_methods', False):
-                    # When analyzing all methods, use the most cost-effective option
-                    try:
+                else:
+                    # Unexpected result format
+                    datasync_throughput = 100
+                    network_efficiency = 0.7
+                    theoretical_throughput = 150
+                    real_world_efficiency = 0.7
+            else:
+                # Fallback values if throughput calculation fails
+                datasync_throughput = 100
+                network_efficiency = 0.7
+                theoretical_throughput = 150
+                real_world_efficiency = 0.7
+            
+            # Ensure valid throughput values
+            datasync_throughput = max(1, float(datasync_throughput))
+            network_efficiency = max(0.1, min(1.0, float(network_efficiency)))
+            
+            # Apply network optimizations
+            tcp_efficiency = {"Default": 1.0, "64KB": 1.05, "128KB": 1.1, "256KB": 1.15, 
+                            "512KB": 1.2, "1MB": 1.25, "2MB": 1.3}
+            mtu_efficiency = {"1500 (Standard)": 1.0, "9000 (Jumbo Frames)": 1.15, "Custom": 1.1}
+            congestion_efficiency = {"Cubic (Default)": 1.0, "BBR": 1.2, "Reno": 0.95, "Vegas": 1.05}
+            
+            tcp_factor = tcp_efficiency.get(config.get('tcp_window_size', 'Default'), 1.0)
+            mtu_factor = mtu_efficiency.get(config.get('mtu_size', '1500 (Standard)'), 1.0)
+            congestion_factor = congestion_efficiency.get(config.get('network_congestion_control', 'Cubic (Default)'), 1.0)
+            wan_factor = 1.3 if config.get('wan_optimization', False) else 1.0
+            
+            optimized_throughput = datasync_throughput * tcp_factor * mtu_factor * congestion_factor * wan_factor
+            optimized_throughput = min(optimized_throughput, config['dx_bandwidth_mbps'] * (config['dedicated_bandwidth'] / 100))
+            optimized_throughput = max(1, optimized_throughput)
+            
+            # Calculate timing FIRST before using in cost calculations
+            available_hours_per_day = 16 if config.get('business_hours_restriction', False) else 24
+            transfer_days = (effective_data_gb * 8) / (optimized_throughput * available_hours_per_day * 3600) / 1000
+            transfer_days = max(0.1, transfer_days)
+            
+            # Initialize cost_breakdown with defaults
+            cost_breakdown = {
+                'compute': 1000,
+                'transfer': 500,
+                'storage': 200,
+                'compliance': len(config.get('compliance_frameworks', [])) * 500,
+                'monitoring': transfer_days * 200,
+                'total': 2200,
+                'pricing_source': 'Fallback',
+                'last_updated': time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
+            }
+            
+            # Now calculate costs based on analysis scope
+            if config.get('analyze_all_methods', False):
+                # When analyzing all methods, use the most cost-effective option
+                try:
+                    if hasattr(self, 'migration_analyzer') and self.migration_analyzer is not None:
                         migration_options = self.migration_analyzer.analyze_all_options(config)
                         
-                        # Find the most cost-effective method
-                        best_method = min(migration_options.values(), key=lambda x: x['estimated_cost'])
-                        
-                        # Use the cost from the best method
-                        cost_breakdown = {
-                            'compute': best_method['estimated_cost'] * 0.4,
-                            'transfer': best_method['estimated_cost'] * 0.3,
-                            'storage': best_method['estimated_cost'] * 0.2,
-                            'compliance': len(config.get('compliance_frameworks', [])) * 500,
-                            'monitoring': transfer_days * 200,
-                            'total': best_method['estimated_cost'],
-                            'pricing_source': 'Migration Options Analysis',
-                            'last_updated': time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
-                        }
-                    except Exception as e:
-                        # Fallback to standard calculation if migration analysis fails
-                        cost_breakdown = self.network_calculator.calculate_enterprise_costs(
+                        if migration_options and isinstance(migration_options, dict):
+                            # Find the most cost-effective method
+                            best_method = min(migration_options.values(), key=lambda x: x.get('estimated_cost', 1000))
+                            
+                            if best_method and 'estimated_cost' in best_method:
+                                # Use the cost from the best method
+                                cost_breakdown = {
+                                    'compute': best_method['estimated_cost'] * 0.4,
+                                    'transfer': best_method['estimated_cost'] * 0.3,
+                                    'storage': best_method['estimated_cost'] * 0.2,
+                                    'compliance': len(config.get('compliance_frameworks', [])) * 500,
+                                    'monitoring': transfer_days * 200,
+                                    'total': best_method['estimated_cost'],
+                                    'pricing_source': 'Migration Options Analysis',
+                                    'last_updated': time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
+                                }
+                except Exception as e:
+                    st.warning(f"Migration options analysis failed: {str(e)}, using fallback costs")
+            else:
+                # Use standard DataSync calculation
+                try:
+                    if hasattr(self, 'network_calculator') and self.network_calculator is not None:
+                        calc_result = self.network_calculator.calculate_enterprise_costs(
                             config['data_size_gb'], transfer_days, config['datasync_instance_type'], 
                             config['num_datasync_agents'], config.get('compliance_frameworks', []), 
                             config.get('s3_storage_class', 'Standard')
                         )
-                else:
-                    # Use standard DataSync calculation
-                    cost_breakdown = self.network_calculator.calculate_enterprise_costs(
-                        config['data_size_gb'], transfer_days, config['datasync_instance_type'], 
-                        config['num_datasync_agents'], config.get('compliance_frameworks', []), 
-                        config.get('s3_storage_class', 'Standard')
+                        
+                        if calc_result and isinstance(calc_result, dict):
+                            cost_breakdown = calc_result
+                except Exception as e:
+                    st.warning(f"Cost calculation failed: {str(e)}, using fallback costs")
+            
+            # Apply optimization factor when analyzing all methods
+            if config.get('analyze_all_methods', False) and cost_breakdown:
+                # When analyzing all methods, we find more cost-effective approaches
+                optimization_factor = 0.75  # 25% cost reduction from finding optimal method
+                
+                # Apply optimization to all cost components
+                for key in cost_breakdown:
+                    if key not in ['pricing_source', 'last_updated', 'cost_breakdown_detailed']:
+                        if isinstance(cost_breakdown[key], (int, float)):
+                            cost_breakdown[key] *= optimization_factor
+            
+            # Compliance and business impact with error handling
+            compliance_reqs = []
+            compliance_risks = []
+            business_impact = {'score': 0.5, 'level': 'Medium', 'recommendation': 'Standard approach'}
+            
+            try:
+                if hasattr(self, 'network_calculator') and self.network_calculator is not None:
+                    compliance_reqs, compliance_risks = self.network_calculator.assess_compliance_requirements(
+                        config.get('compliance_frameworks', []), 
+                        config.get('data_classification', 'Internal'), 
+                        config.get('data_residency', 'No restrictions')
                     )
-                
-                # Apply optimization factor when analyzing all methods
-                if config.get('analyze_all_methods', False):
-                    # When analyzing all methods, we find more cost-effective approaches
-                    optimization_factor = 0.75  # 25% cost reduction from finding optimal method
-                    
-                    # Apply optimization to all cost components
-                    for key in cost_breakdown:
-                        if key not in ['pricing_source', 'last_updated', 'cost_breakdown_detailed']:
-                            if isinstance(cost_breakdown[key], (int, float)):
-                                cost_breakdown[key] *= optimization_factor
-                
-                # Compliance and business impact
-                compliance_reqs, compliance_risks = self.network_calculator.assess_compliance_requirements(
-                    config.get('compliance_frameworks', []), 
-                    config.get('data_classification', 'Internal'), 
-                    config.get('data_residency', 'No restrictions')
-                )
-                business_impact = self.network_calculator.calculate_business_impact(
-                    transfer_days, config.get('data_types', [])
-                )
-                
-                 # Get AI-powered networking recommendations with agent optimization
-                target_region_short = config.get('target_aws_region', 'us-east-1').split()[0]
-                networking_recommendations = self.network_calculator.get_optimal_networking_architecture(
-                    config.get('source_location', 'San Jose, CA'), 
-                    target_region_short, 
-                    config['data_size_gb'],
-                    config['dx_bandwidth_mbps'], 
-                    config.get('database_types', []), 
-                    config.get('data_types', []), 
-                    config
-                )
-                
-                # Enhance networking recommendations with agent analysis
-                networking_recommendations['agent_optimization'] = agent_analysis
-                
-                return {
-                    'data_size_tb': data_size_tb,
-                    'effective_data_gb': effective_data_gb,
-                    'datasync_throughput': datasync_throughput,
-                    'theoretical_throughput': theoretical_throughput,
-                    'real_world_efficiency': real_world_efficiency,
-                    'optimized_throughput': optimized_throughput,
-                    'network_efficiency': network_efficiency,
-                    'transfer_days': transfer_days,
-                    'cost_breakdown': cost_breakdown,
-                    'compliance_reqs': compliance_reqs,
-                    'compliance_risks': compliance_risks,
-                    'business_impact': business_impact,
-                    'available_hours_per_day': available_hours_per_day,
-                    'networking_recommendations': networking_recommendations,
-                    'agent_analysis': agent_analysis  # Include detailed agent analysis
-                }
-                
+                    business_impact = self.network_calculator.calculate_business_impact(
+                        transfer_days, config.get('data_types', [])
+                    )
             except Exception as e:
-                # Return default metrics if calculation fails
-                st.error(f"Error in calculation: {str(e)}")
-                return {
-                    'data_size_tb': 1.0,
-                    'effective_data_gb': 1000,
-                    'datasync_throughput': 100,
-                    'theoretical_throughput': 150,
-                    'real_world_efficiency': 0.7,
-                    'optimized_throughput': 100,
-                    'network_efficiency': 0.7,
-                    'transfer_days': 10,
-                    'cost_breakdown': {
-                        'compute': 1000, 
-                        'transfer': 500, 
-                        'storage': 200, 
-                        'compliance': 100, 
-                        'monitoring': 50, 
-                        'total': 1850,
-                        'pricing_source': 'Fallback',
-                        'last_updated': time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
-                    },
-                    'compliance_reqs': [],
-                    'compliance_risks': [],
-                    'business_impact': {'score': 0.5, 'level': 'Medium', 'recommendation': 'Standard approach'},
-                    'available_hours_per_day': 24,
-                    'networking_recommendations': {
-                        'primary_method': 'DataSync',
-                        'secondary_method': 'S3 Transfer Acceleration',
-                        'networking_option': 'Direct Connect',
-                        'db_migration_tool': 'DMS',
-                        'rationale': 'Default configuration recommendation',
-                        'estimated_performance': {'throughput_mbps': 100, 'estimated_days': 10, 'network_efficiency': 0.7},
-                        'cost_efficiency': 'Medium',
-                        'risk_level': 'Low'
-                    }
-                }
-    
+                st.warning(f"Compliance/business impact analysis failed: {str(e)}")
+            
+            # Get AI-powered networking recommendations with agent optimization
+            networking_recommendations = {
+                'primary_method': 'DataSync',
+                'secondary_method': 'S3 Transfer Acceleration',
+                'networking_option': 'Direct Connect',
+                'db_migration_tool': 'DMS',
+                'rationale': 'Default configuration recommendation',
+                'estimated_performance': {'throughput_mbps': optimized_throughput, 'estimated_days': transfer_days, 'network_efficiency': network_efficiency},
+                'cost_efficiency': 'Medium',
+                'risk_level': 'Low'
+            }
+            
+            try:
+                if hasattr(self, 'network_calculator') and self.network_calculator is not None:
+                    target_region_short = config.get('target_aws_region', 'us-east-1').split()[0]
+                    recommendations_result = self.network_calculator.get_optimal_networking_architecture(
+                        config.get('source_location', 'San Jose, CA'), 
+                        target_region_short, 
+                        config['data_size_gb'],
+                        config['dx_bandwidth_mbps'], 
+                        config.get('database_types', []), 
+                        config.get('data_types', []), 
+                        config
+                    )
+                    
+                    if recommendations_result and isinstance(recommendations_result, dict):
+                        networking_recommendations = recommendations_result
+            except Exception as e:
+                st.warning(f"Networking recommendations failed: {str(e)}")
+            
+            # Enhance networking recommendations with agent analysis - with null check
+            if networking_recommendations is not None and isinstance(networking_recommendations, dict):
+                networking_recommendations['agent_optimization'] = agent_analysis
+            
+            return {
+                'data_size_tb': data_size_tb,
+                'effective_data_gb': effective_data_gb,
+                'datasync_throughput': datasync_throughput,
+                'theoretical_throughput': theoretical_throughput,
+                'real_world_efficiency': real_world_efficiency,
+                'optimized_throughput': optimized_throughput,
+                'network_efficiency': network_efficiency,
+                'transfer_days': transfer_days,
+                'cost_breakdown': cost_breakdown,
+                'compliance_reqs': compliance_reqs,
+                'compliance_risks': compliance_risks,
+                'business_impact': business_impact,
+                'available_hours_per_day': available_hours_per_day,
+                'networking_recommendations': networking_recommendations,
+                'agent_analysis': agent_analysis  # Include detailed agent analysis
+            }
+            
+        except Exception as e:
+            # Return default metrics if calculation fails
+            st.error(f"Error in calculation: {str(e)}")
+            return {
+                'data_size_tb': 1.0,
+                'effective_data_gb': 1000,
+                'datasync_throughput': 100,
+                'theoretical_throughput': 150,
+                'real_world_efficiency': 0.7,
+                'optimized_throughput': 100,
+                'network_efficiency': 0.7,
+                'transfer_days': 10,
+                'cost_breakdown': {
+                    'compute': 1000, 
+                    'transfer': 500, 
+                    'storage': 200, 
+                    'compliance': 100, 
+                    'monitoring': 50, 
+                    'total': 1850,
+                    'pricing_source': 'Fallback',
+                    'last_updated': time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
+                },
+                'compliance_reqs': [],
+                'compliance_risks': [],
+                'business_impact': {'score': 0.5, 'level': 'Medium', 'recommendation': 'Standard approach'},
+                'available_hours_per_day': 24,
+                'networking_recommendations': {
+                    'primary_method': 'DataSync',
+                    'secondary_method': 'S3 Transfer Acceleration',
+                    'networking_option': 'Direct Connect',
+                    'db_migration_tool': 'DMS',
+                    'rationale': 'Default configuration recommendation',
+                    'estimated_performance': {'throughput_mbps': 100, 'estimated_days': 10, 'network_efficiency': 0.7},
+                    'cost_efficiency': 'Medium',
+                    'risk_level': 'Low',
+                    'agent_optimization': {'status': 'Unknown', 'current_agents': 1, 'recommended_agents': 1}
+                },
+                'agent_analysis': {'status': 'Error', 'recommendation': 'Unable to analyze'}
+            }
+
     def _analyze_datasync_agent_optimization(self, data_size_tb, dx_bandwidth_mbps, current_agents, config):
         """Analyze DataSync agent configuration and provide optimization recommendations"""
         try:
@@ -2792,18 +2864,10 @@ class EnterpriseMigrationPlatform:
             agent_hourly_cost = self._get_agent_hourly_cost(config.get('datasync_instance_type', 'm5.large'))
             current_cost_per_hour = current_agents * agent_hourly_cost
             recommended_cost_per_hour = recommended_agents * agent_hourly_cost
-            
-            # Avoid division by zero
-            if current_cost_per_hour > 0:
-                cost_change_pct = ((recommended_cost_per_hour - current_cost_per_hour) / current_cost_per_hour) * 100
-            else:
-                cost_change_pct = 0
+            cost_change_pct = ((recommended_cost_per_hour - current_cost_per_hour) / current_cost_per_hour) * 100
             
             # Performance impact analysis
-            if current_efficiency > 0:
-                performance_gain_pct = ((optimal_efficiency - current_efficiency) / current_efficiency) * 100
-            else:
-                performance_gain_pct = 0
+            performance_gain_pct = ((optimal_efficiency - current_efficiency) / current_efficiency) * 100
             
             # Generate recommendations
             if recommended_agents > current_agents:
@@ -2828,10 +2892,7 @@ class EnterpriseMigrationPlatform:
             # Time impact analysis
             if change_type != "OPTIMAL":
                 time_change_pct = -performance_gain_pct * 0.8  # Approximate time reduction
-                if time_change_pct != 0:
-                    time_impact = f"{abs(time_change_pct):.1f}% {'faster' if time_change_pct < 0 else 'slower'}"
-                else:
-                    time_impact = "No significant change"
+                time_impact = f"{abs(time_change_pct):.1f}% {'faster' if time_change_pct < 0 else 'slower'}"
             else:
                 time_impact = "No change"
             
@@ -2847,31 +2908,14 @@ class EnterpriseMigrationPlatform:
             scenarios = []
             
             # Conservative scenario (minimal change)
-            if change_type == "INCREASE":
-                conservative_agents = current_agents + 1
-            elif change_type == "DECREASE":
-                conservative_agents = max(1, current_agents - 1)
-            else:
-                conservative_agents = current_agents
-            
-            # Calculate conservative scenario impacts
-            conservative_efficiency = self._calculate_agent_efficiency(conservative_agents, data_size_tb, dx_bandwidth_mbps)
-            if current_efficiency > 0:
-                conservative_perf_gain = ((conservative_efficiency - current_efficiency) / current_efficiency) * 100
-            else:
-                conservative_perf_gain = 0
-            
-            conservative_cost_per_hour = conservative_agents * agent_hourly_cost
-            if current_cost_per_hour > 0:
-                conservative_cost_change = ((conservative_cost_per_hour - current_cost_per_hour) / current_cost_per_hour) * 100
-            else:
-                conservative_cost_change = 0
+            conservative_agents = current_agents + (1 if change_type == "INCREASE" else (-1 if change_type == "DECREASE" else 0))
+            conservative_agents = max(1, conservative_agents)
             
             scenarios.append({
                 "name": "Conservative",
                 "agents": conservative_agents,
-                "performance_change": f"{conservative_perf_gain:+.1f}%",
-                "cost_change": f"{conservative_cost_change:+.1f}%",
+                "performance_change": f"{performance_gain_pct/2:+.1f}%",
+                "cost_change": f"{cost_change_pct/2:+.1f}%",
                 "risk": "Low"
             })
             
@@ -2881,23 +2925,13 @@ class EnterpriseMigrationPlatform:
                 "agents": recommended_agents,
                 "performance_change": f"{performance_gain_pct:+.1f}%",
                 "cost_change": f"{cost_change_pct:+.1f}%",
-                "risk": risk_level.split(" - ")[0] if " - " in risk_level else risk_level
+                "risk": risk_level.split(" - ")[0]
             })
             
             # Aggressive scenario (maximum performance)
-            aggressive_agents = min(20, max(recommended_agents + 2, current_agents + 3))
-            aggressive_efficiency = self._calculate_agent_efficiency(aggressive_agents, data_size_tb, dx_bandwidth_mbps)
-            
-            if current_efficiency > 0:
-                aggressive_performance = ((aggressive_efficiency - current_efficiency) / current_efficiency) * 100
-            else:
-                aggressive_performance = 0
-            
-            aggressive_cost_per_hour = aggressive_agents * agent_hourly_cost
-            if current_cost_per_hour > 0:
-                aggressive_cost = ((aggressive_cost_per_hour - current_cost_per_hour) / current_cost_per_hour) * 100
-            else:
-                aggressive_cost = 0
+            aggressive_agents = min(20, recommended_agents + 2)
+            aggressive_performance = performance_gain_pct * 1.3
+            aggressive_cost = cost_change_pct * 1.5
             
             scenarios.append({
                 "name": "Aggressive",
@@ -2945,29 +2979,16 @@ class EnterpriseMigrationPlatform:
 
     def _calculate_agent_efficiency(self, num_agents, data_size_tb, bandwidth_mbps):
         """Calculate efficiency percentage for given agent configuration"""
-        try:
-            # Efficiency factors
-            size_efficiency = min(100, (num_agents * 7) / max(0.1, data_size_tb) * 100)  # 7TB per agent optimal, avoid division by zero
-            bandwidth_efficiency = min(100, (num_agents * 750) / max(1, bandwidth_mbps) * 100)  # 750 Mbps per agent optimal, avoid division by zero
-            
-            # Diminishing returns after 10 agents
-            if num_agents <= 10:
-                scaling_efficiency = 100
-            else:
-                scaling_efficiency = max(60, 100 - (num_agents - 10) * 5)
-            
-            # Overall efficiency using harmonic mean (but protect against division by zero)
-            if size_efficiency > 0 and bandwidth_efficiency > 0 and scaling_efficiency > 0:
-                overall_efficiency = 3 / (1/size_efficiency + 1/bandwidth_efficiency + 1/scaling_efficiency) * 100
-            else:
-                # Fallback to arithmetic mean if any efficiency is zero
-                overall_efficiency = (size_efficiency + bandwidth_efficiency + scaling_efficiency) / 3
-            
-            return min(100, max(10, overall_efficiency))
-            
-        except Exception as e:
-            # Return a reasonable default if calculation fails
-            return 50.0
+        # Efficiency factors
+        size_efficiency = min(100, (num_agents * 7) / data_size_tb * 100)  # 7TB per agent optimal
+        bandwidth_efficiency = min(100, (num_agents * 750) / bandwidth_mbps * 100)  # 750 Mbps per agent optimal
+        
+        # Diminishing returns after 10 agents
+        scaling_efficiency = 100 if num_agents <= 10 else max(60, 100 - (num_agents - 10) * 5)
+        
+        # Overall efficiency is the harmonic mean
+        overall_efficiency = 3 / (1/size_efficiency + 1/bandwidth_efficiency + 1/scaling_efficiency) * 100
+        return min(100, max(10, overall_efficiency))
 
     def _get_agent_hourly_cost(self, instance_type):
         """Get hourly cost for DataSync agent instance"""
@@ -2983,7 +3004,7 @@ class EnterpriseMigrationPlatform:
             "r5.2xlarge": 0.504,
             "r5.4xlarge": 1.008
         }
-        return instance_costs.get(instance_type, 0.096)  # Default to m5.large cost
+        return instance_costs.get(instance_type, 0.096)
      
         
     def render_network_dashboard_tab(self, config, metrics):
