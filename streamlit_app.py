@@ -376,7 +376,7 @@ class AWSPricingManager:
              aws_region = self.region
              credential_source = "Unknown"
             
-            #try:
+            try:
                 # Check if AWS secrets are configured in .streamlit/secrets.toml
                 if hasattr(st, 'secrets') and 'aws' in st.secrets:
                     aws_access_key = st.secrets["aws"]["access_key_id"]
