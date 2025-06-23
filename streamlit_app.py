@@ -2715,7 +2715,7 @@ def calculate_network_migration_metrics(self, config):
                 }
             }
     
-    def render_network_dashboard_tab(self, config, metrics):
+def render_network_dashboard_tab(self, config, metrics):
         """Render network dashboard tab with full functionality"""
         st.markdown('<div class="section-header">🏠 Network Migration Dashboard</div>', unsafe_allow_html=True)
         
