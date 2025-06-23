@@ -3565,7 +3565,7 @@ def render_comprehensive_migration_analysis(self, config, metrics):
                 st.session_state.active_database_tab = "dashboard"
         
         # Render appropriate database tab
-         if st.session_state.active_database_tab == "configuration":
+        if st.session_state.active_database_tab == "configuration":
             self.render_database_configuration_tab()
         elif st.session_state.active_database_tab == "sizing":
             self.render_database_sizing_tab()
