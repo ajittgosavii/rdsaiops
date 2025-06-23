@@ -1513,6 +1513,7 @@ class MigrationAnalyzer:
             'storage_cost': storage_cost,
             'backup_cost': backup_cost,
             'total_monthly': total_monthly
+        }
 
 # Add these enhanced recommendation display functions to your streamlit_app.py
 
