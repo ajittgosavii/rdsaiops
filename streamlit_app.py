@@ -431,6 +431,13 @@ class AWSPricingManager:
                 response = self.pricing_client.describe_services(MaxResults=1)
                 #st.success(f"✅ AWS Pricing API connected via {credential_source}")
                 
+                self.connection_status = {
+                    'connected': True,
+                    'source': credential_source,
+                    'region': aws_region
+                }
+                               
+                
                             # Additional connection details
                 if credential_source != "Streamlit Secrets":
                     # Get additional info for non-secrets connections
@@ -463,7 +470,7 @@ class AWSPricingManager:
                 'source': 'None'
             }
 
-                except Exception as e:
+        except Exception as e:
             # REMOVED: Error message
             self.pricing_client = None
             self.ec2_client = None
