@@ -3409,53 +3409,53 @@ class EnterpriseMigrationPlatform:
         
     # ADD this new method AFTER the render_network_analytics_tab method (around line 2200):
 
-def render_comprehensive_migration_analysis(self, config, metrics):
-    """Render comprehensive migration analysis with all methods"""
-    
-    st.markdown('<div class="section-header">📊 Comprehensive Migration Analysis</div>', unsafe_allow_html=True)
-    
-    # Check if comprehensive analysis is enabled
-    if config.get('analyze_all_methods', False):
+    def render_comprehensive_migration_analysis(self, config, metrics):
+        """Render comprehensive migration analysis with all methods"""
         
-        # Analyze all migration options
-        migration_options = self.migration_analyzer.analyze_all_options(config)
+        st.markdown('<div class="section-header">📊 Comprehensive Migration Analysis</div>', unsafe_allow_html=True)
         
-        # Display comparison table
-        st.subheader("🔍 Migration Methods Comparison")
-        
-        comparison_data = []
-        for method_key, method_data in migration_options.items():
-            method_info = method_data['method_info']
+        # Check if comprehensive analysis is enabled
+        if config.get('analyze_all_methods', False):
             
-            comparison_data.append({
-                "Method": method_info['name'],
-                "Best For": ", ".join(method_info['best_for'][:2]),
-                "Throughput": f"{method_data['throughput_mbps']}" if isinstance(method_data['throughput_mbps'], str) else f"{method_data['throughput_mbps']:.0f} Mbps",
-                "Timeline": f"{method_data['transfer_days']:.1f} days" if isinstance(method_data['transfer_days'], (int, float)) else str(method_data['transfer_days']),
-                "Est. Cost": f"${method_data['estimated_cost']:,.0f}",
-                "Complexity": method_info['setup_complexity'],
-                "Score": f"{method_data['score']:.0f}/100",
-                "Recommendation": method_data['recommendation_level']
-            })
-        
-        df_comparison = pd.DataFrame(comparison_data)
-        self.safe_dataframe_display(df_comparison)
-        
-        # Get AI analysis if enabled
-        if config.get('enable_ai_analysis', False) and self.claude_ai.available:
-            st.subheader("🤖 Claude AI Strategic Analysis")
+            # Analyze all migration options
+            migration_options = self.migration_analyzer.analyze_all_options(config)
             
-            ai_analysis = self.claude_ai.analyze_migration_strategy(config, metrics, migration_options)
+            # Display comparison table
+            st.subheader("🔍 Migration Methods Comparison")
             
-            st.markdown(f"""
-            <div class="ai-insight">
-                <h4>🧠 Claude AI Recommendation ({ai_analysis['source']})</h4>
-                <p><strong>Confidence Level:</strong> {ai_analysis['confidence']}</p>
-                <div style="white-space: pre-wrap;">{ai_analysis['analysis']}</div>
-            </div>
-            """, unsafe_allow_html=True)
-    
-    
+            comparison_data = []
+            for method_key, method_data in migration_options.items():
+                method_info = method_data['method_info']
+                
+                comparison_data.append({
+                    "Method": method_info['name'],
+                    "Best For": ", ".join(method_info['best_for'][:2]),
+                    "Throughput": f"{method_data['throughput_mbps']}" if isinstance(method_data['throughput_mbps'], str) else f"{method_data['throughput_mbps']:.0f} Mbps",
+                    "Timeline": f"{method_data['transfer_days']:.1f} days" if isinstance(method_data['transfer_days'], (int, float)) else str(method_data['transfer_days']),
+                    "Est. Cost": f"${method_data['estimated_cost']:,.0f}",
+                    "Complexity": method_info['setup_complexity'],
+                    "Score": f"{method_data['score']:.0f}/100",
+                    "Recommendation": method_data['recommendation_level']
+                })
+            
+            df_comparison = pd.DataFrame(comparison_data)
+            self.safe_dataframe_display(df_comparison)
+            
+            # Get AI analysis if enabled
+            if config.get('enable_ai_analysis', False) and self.claude_ai.available:
+                st.subheader("🤖 Claude AI Strategic Analysis")
+                
+                ai_analysis = self.claude_ai.analyze_migration_strategy(config, metrics, migration_options)
+                
+                st.markdown(f"""
+                <div class="ai-insight">
+                    <h4>🧠 Claude AI Recommendation ({ai_analysis['source']})</h4>
+                    <p><strong>Confidence Level:</strong> {ai_analysis['confidence']}</p>
+                    <div style="white-space: pre-wrap;">{ai_analysis['analysis']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        
     
     def render_network_conclusion_tab(self, config, metrics):
         """Render network conclusion tab with full functionality"""
@@ -3871,49 +3871,96 @@ def render_comprehensive_migration_analysis(self, config, metrics):
             mime="text/csv"
         )
 
-def render_vrops_integration_tab(self):
-    """Render vROps integration section"""
-    st.markdown('<div class="section-header">🔌 vRealize Operations Integration</div>', unsafe_allow_html=True)
-    
-    if not st.session_state.vrops_connected:
-        st.info("Connect to vROps to import real performance data for accurate sizing analysis.")
+    def render_vrops_integration_tab(self):
+        """Render vROps integration section"""
+        st.markdown('<div class="section-header">🔌 vRealize Operations Integration</div>', unsafe_allow_html=True)
         
-        with st.form("vrops_connection"):
+        if not st.session_state.vrops_connected:
+            st.info("Connect to vROps to import real performance data for accurate sizing analysis.")
+            
+            with st.form("vrops_connection"):
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    vrops_host = st.text_input("vROps Host/IP", placeholder="vrops.company.com")
+                    username = st.text_input("Username", placeholder="admin@local")
+                
+                with col2:
+                    password = st.text_input("Password", type="password")
+                    verify_ssl = st.checkbox("Verify SSL Certificate", value=True)
+                
+                submitted = st.form_submit_button("🔗 Connect to vROps")
+                
+                if submitted and vrops_host and username and password:
+                    with st.spinner("Connecting to vROps..."):
+                        if self.vrops_connector.connect(vrops_host, username, password, verify_ssl):
+                            st.session_state.vrops_connected = True
+                            st.success("✅ Successfully connected to vROps!")
+                            st.rerun()
+        else:
+            st.success("✅ Connected to vROps")
+            
             col1, col2 = st.columns(2)
             
             with col1:
-                vrops_host = st.text_input("vROps Host/IP", placeholder="vrops.company.com")
-                username = st.text_input("Username", placeholder="admin@local")
+                if st.button("📊 Import Database Metrics"):
+                    with st.spinner("Importing vROps metrics..."):
+                        metrics = self.vrops_connector.get_database_metrics()
+                        if metrics:
+                            st.success(f"✅ Imported metrics for {len(metrics)} resources")
             
             with col2:
-                password = st.text_input("Password", type="password")
-                verify_ssl = st.checkbox("Verify SSL Certificate", value=True)
-            
-            submitted = st.form_submit_button("🔗 Connect to vROps")
-            
-            if submitted and vrops_host and username and password:
-                with st.spinner("Connecting to vROps..."):
-                    if self.vrops_connector.connect(vrops_host, username, password, verify_ssl):
-                        st.session_state.vrops_connected = True
-                        st.success("✅ Successfully connected to vROps!")
-                        st.rerun()
-    else:
-        st.success("✅ Connected to vROps")
+                if st.button("🔌 Disconnect"):
+                    st.session_state.vrops_connected = False
+                    st.rerun()
+    def run(self):
+        """Main application entry point"""
+        # Render unified header and navigation
+        self.render_header()
+        self.render_main_navigation()
         
-        col1, col2 = st.columns(2)
+        # Real-time update indicator
+        current_time = datetime.now()
+        time_since_update = (current_time - self.last_update_time).seconds
+        
+        st.markdown(f"""
+        <div style="text-align: right; color: #666; font-size: 0.8em; margin-bottom: 1rem;">
+            <span class="real-time-indicator"></span>Last updated: {current_time.strftime('%H:%M:%S')} | Platform: Enterprise Migration Suite
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Render appropriate main tab
+        if st.session_state.active_main_tab == "overview":
+            self.render_overview_tab()
+        elif st.session_state.active_main_tab == "network":
+            self.render_network_migration_platform()
+        elif st.session_state.active_main_tab == "database":
+            self.render_database_migration_platform()
+        elif st.session_state.active_main_tab == "unified":
+            self.render_unified_analytics_tab()
+        elif st.session_state.active_main_tab == "reports":
+            self.render_reports_tab()
+        
+        # Update timestamp
+        self.last_update_time = current_time
+        
+        # Footer
+        st.markdown("---")
+        col1, col2, col3 = st.columns(3)
         
         with col1:
-            if st.button("📊 Import Database Metrics"):
-                with st.spinner("Importing vROps metrics..."):
-                    metrics = self.vrops_connector.get_database_metrics()
-                    if metrics:
-                        st.success(f"✅ Imported metrics for {len(metrics)} resources")
+            st.markdown("**🏢 Enterprise Migration Platform v2.0**")
+            st.markdown("*Unified Network & Database Migration*")
         
         with col2:
-            if st.button("🔌 Disconnect"):
-                st.session_state.vrops_connected = False
-                st.rerun()
-    
+            st.markdown("**🤖 AI-Powered Features**")
+            st.markdown("• Intelligent Sizing & Cost Analysis")
+            st.markdown("• Real-time Performance Optimization")
+        
+        with col3:
+            st.markdown("**🔒 Enterprise Security**")
+            st.markdown("• SOC2 Type II Certified")
+            st.markdown("• Zero Trust Architecture")    
     
     
     # =========================================================================
